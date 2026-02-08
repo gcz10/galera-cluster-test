@@ -5,6 +5,11 @@ output "galera_node_ips" {
   }
 }
 
+output "loadbalancer_ip" {
+  description = "IP address of the load balancer VM"
+  value       = var.loadbalancer_vm.ip
+}
+
 output "monitoring_ip" {
   description = "IP address of the monitoring VM"
   value       = var.monitoring_vm.ip

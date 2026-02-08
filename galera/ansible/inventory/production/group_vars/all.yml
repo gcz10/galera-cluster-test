@@ -31,7 +31,9 @@ proxysql_monitor_password: "ChangeMe!ProxySQL2024"
 proxysql_admin_password: "ChangeMe!ProxySQLAdmin2024"
 
 # Uzytkownicy aplikacji (dodaj wlasnych)
-app_users: []
+app_users:
+  - name: "sbtest"
+    password: "SbTest2024"
 
 # =============================================================================
 # Konfiguracja sieci

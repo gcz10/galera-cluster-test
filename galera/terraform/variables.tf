@@ -41,6 +41,19 @@ variable "galera_nodes" {
   }
 }
 
+variable "loadbalancer_vm" {
+  type = object({
+    vm_id = number
+    ip    = string
+    name  = string
+  })
+  default = {
+    vm_id = 505
+    ip    = "192.168.1.55"
+    name  = "lb-1"
+  }
+}
+
 variable "monitoring_vm" {
   type = object({
     vm_id = number

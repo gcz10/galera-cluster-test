@@ -3,6 +3,16 @@
 # Rola: proxysql - Load Balancer dla Galera (Opcja B)
 # =============================================================================
 
+- name: Open firewall ports for ProxySQL
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - "{{ proxysql_port }}/tcp"
+    - "{{ proxysql_admin_port }}/tcp"
+
 - name: Dodaj repozytorium ProxySQL
   copy:
     dest: /etc/yum.repos.d/proxysql.repo
@@ -45,7 +55,7 @@
 - name: Ustaw haslo admin ProxySQL
   shell: |
     mysql -u admin -padmin -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
-    UPDATE global_variables SET variable_value='{{ proxysql_admin_password }}'
+    UPDATE global_variables SET variable_value='admin:{{ proxysql_admin_password }}'
     WHERE variable_name='admin-admin_credentials';
     LOAD ADMIN VARIABLES TO RUNTIME;
     SAVE ADMIN VARIABLES TO DISK;

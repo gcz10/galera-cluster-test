@@ -43,7 +43,20 @@
   roles:
     - prometheus-exporter
 
-# Phase 6: Prometheus + Grafana monitoring server
+# Phase 6: Load Balancers (HAProxy + ProxySQL side by side)
+- name: Deploy HAProxy load balancer
+  hosts: loadbalancer
+  tags: [loadbalancer, haproxy]
+  roles:
+    - haproxy
+
+- name: Deploy ProxySQL load balancer
+  hosts: loadbalancer
+  tags: [loadbalancer, proxysql]
+  roles:
+    - proxysql
+
+# Phase 7: Prometheus + Grafana monitoring server
 - name: Deploy Prometheus + Grafana monitoring
   hosts: monitoring
   tags: [monitoring, grafana]

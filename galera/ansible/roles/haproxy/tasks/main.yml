@@ -3,51 +3,38 @@
 # Rola: haproxy - Load Balancer dla Galera (Opcja A)
 # =============================================================================
 
-- name: Zainstaluj HAProxy i xinetd
-  dnf:
+- name: Install firewalld
+  ansible.builtin.dnf:
     name:
-      - haproxy
-      - xinetd
+      - firewalld
+      - python3-firewall
     state: present
 
-- name: Utworz katalog dla skryptu health check
-  file:
-    path: /usr/local/bin
-    state: directory
-    mode: '0755'
-
-- name: Wdróż skrypt health check dla Galera
-  template:
-    src: galera_check.sh.j2
-    dest: /usr/local/bin/galera_check.sh
-    owner: root
-    group: root
-    mode: '0755'
-
-- name: Skonfiguruj xinetd dla galera_check
-  template:
-    src: galera_check.xinetd.j2
-    dest: /etc/xinetd.d/galera_check
-    owner: root
-    group: root
-    mode: '0644'
-  notify: restart xinetd
-
-- name: Dodaj usługę galera_check do /etc/services
-  lineinfile:
-    path: /etc/services
-    line: "galera_check\t9200/tcp\t\t\t# Galera health check"
-    state: present
-  notify: restart xinetd
-
-- name: Wlacz i uruchom xinetd
-  systemd:
-    name: xinetd
+- name: Enable and start firewalld
+  ansible.builtin.systemd:
+    name: firewalld
     state: started
-    enabled: yes
+    enabled: true
+
+- name: Install SELinux management tools
+  ansible.builtin.dnf:
+    name:
+      - policycoreutils-python-utils
+    state: present
+
+- name: Allow HAProxy to bind any port (SELinux)
+  ansible.posix.seboolean:
+    name: haproxy_connect_any
+    state: true
+    persistent: true
+
+- name: Zainstaluj HAProxy
+  ansible.builtin.dnf:
+    name: haproxy
+    state: present
 
 - name: Skonfiguruj HAProxy
-  template:
+  ansible.builtin.template:
     src: haproxy.cfg.j2
     dest: /etc/haproxy/haproxy.cfg
     owner: root
@@ -56,22 +43,19 @@
     validate: 'haproxy -c -f %s'
   notify: restart haproxy
 
+- name: Open firewall ports for HAProxy
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - "{{ haproxy_write_port }}/tcp"
+    - "{{ haproxy_read_port }}/tcp"
+    - "{{ haproxy_stats_port }}/tcp"
+
 - name: Wlacz i uruchom HAProxy
-  systemd:
+  ansible.builtin.systemd:
     name: haproxy
     state: started
-    enabled: yes
-
-- name: Wyswietl informacje o HAProxy
-  debug:
-    msg: |
-      HAProxy skonfigurowany!
-
-      Porty:
-      - Write pool: {{ haproxy_write_port }} (single-master)
-      - Read pool: {{ haproxy_read_port }} (round-robin)
-      - Stats UI: http://{{ ansible_host }}:{{ haproxy_stats_port }}/stats
-
-      Connection strings dla aplikacji:
-      - Write: mysql -h {{ ansible_host }} -P {{ haproxy_write_port }} -u app_user -p
-      - Read:  mysql -h {{ ansible_host }} -P {{ haproxy_read_port }} -u app_user -p
+    enabled: true

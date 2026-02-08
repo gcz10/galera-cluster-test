@@ -144,11 +144,11 @@
     login_password: "{{ galera_root_password }}"
   no_log: true
 
-- name: Utworz uzytkownika haproxy_check
+- name: Utworz uzytkownika haproxy_check (bez hasla - wymagane przez HAProxy mysql-check)
   mysql_user:
     name: "{{ haproxy_check_user }}"
-    password: "{{ haproxy_check_password }}"
-    priv: "*.*:PROCESS,REPLICATION CLIENT"
+    password: ""
+    priv: "*.*:USAGE"
     host: "%"
     state: present
     login_user: root
