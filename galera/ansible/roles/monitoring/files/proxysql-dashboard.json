@@ -8,100 +8,263 @@
   "time": { "from": "now-30m", "to": "now" },
   "panels": [
     {
+      "id": 100,
+      "title": "Overview",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+    {
       "id": 1,
-      "title": "Client Connections",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "title": "Uptime",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
       "datasource": "Prometheus",
-      "targets": [
-        { "expr": "proxysql_mysql_status_client_connections_connected", "legendFormat": "Connected" },
-        { "expr": "proxysql_mysql_status_client_connections_non_idle", "legendFormat": "Non-Idle" }
-      ],
-      "fieldConfig": { "defaults": { "unit": "short" } }
+      "targets": [{ "expr": "proxysql_mysql_status_proxysql_uptime", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "s" } }
     },
     {
       "id": 2,
-      "title": "Active Transactions",
+      "title": "ProxySQL Up",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 4, "x": 8, "y": 0 },
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
       "datasource": "Prometheus",
-      "targets": [
-        { "expr": "proxysql_mysql_status_active_transactions", "legendFormat": "Active TX" }
-      ],
-      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [
-        { "color": "green", "value": null },
-        { "color": "yellow", "value": 50 },
-        { "color": "red", "value": 100 }
-      ] } } }
+      "targets": [{ "expr": "proxysql_up", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "1": { "text": "UP", "color": "green" }, "0": { "text": "DOWN", "color": "red" } } }] } }
     },
     {
       "id": 3,
-      "title": "Questions (QPS)",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "title": "Active Transactions",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
       "datasource": "Prometheus",
-      "targets": [
-        { "expr": "rate(proxysql_mysql_status_questions[1m])", "legendFormat": "QPS" }
-      ],
-      "fieldConfig": { "defaults": { "unit": "ops" } }
+      "targets": [{ "expr": "proxysql_mysql_status_active_transactions", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "short", "thresholds": { "steps": [
+        { "color": "green", "value": null }, { "color": "yellow", "value": 50 }, { "color": "red", "value": 100 }
+      ] } } }
     },
     {
       "id": 4,
-      "title": "Server Connections",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "title": "Client Connected",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
       "datasource": "Prometheus",
-      "targets": [
-        { "expr": "proxysql_mysql_status_server_connections_connected", "legendFormat": "Connected" },
-        { "expr": "rate(proxysql_mysql_status_server_connections_created[1m])", "legendFormat": "Created/s" },
-        { "expr": "rate(proxysql_mysql_status_server_connections_aborted[1m])", "legendFormat": "Aborted/s" }
-      ],
+      "targets": [{ "expr": "proxysql_mysql_status_client_connections_connected", "legendFormat": "" }],
       "fieldConfig": { "defaults": { "unit": "short" } }
     },
     {
       "id": 5,
-      "title": "Slow Queries",
+      "title": "Questions/s",
       "type": "stat",
-      "gridPos": { "h": 8, "w": 4, "x": 8, "y": 8 },
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
       "datasource": "Prometheus",
-      "targets": [
-        { "expr": "rate(proxysql_mysql_status_slow_queries[1m])", "legendFormat": "Slow/s" }
-      ],
-      "fieldConfig": { "defaults": { "unit": "ops", "thresholds": { "steps": [
-        { "color": "green", "value": null },
-        { "color": "yellow", "value": 1 },
-        { "color": "red", "value": 10 }
-      ] } } }
+      "targets": [{ "expr": "rate(proxysql_mysql_status_questions[1m])", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
     },
     {
       "id": 6,
-      "title": "Backend Traffic",
+      "title": "Slow Queries/s",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "datasource": "Prometheus",
+      "targets": [{ "expr": "rate(proxysql_mysql_status_slow_queries[1m])", "legendFormat": "" }],
+      "fieldConfig": { "defaults": { "unit": "ops", "thresholds": { "steps": [
+        { "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 10 }
+      ] } } }
+    },
+
+    {
+      "id": 101,
+      "title": "Client Connections",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+    {
+      "id": 10,
+      "title": "Client Connections",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
       "datasource": "Prometheus",
       "targets": [
-        { "expr": "rate(proxysql_mysql_status_queries_backends_bytes_recv[1m])", "legendFormat": "Recv" },
-        { "expr": "rate(proxysql_mysql_status_queries_backends_bytes_sent[1m])", "legendFormat": "Sent" }
+        { "expr": "proxysql_mysql_status_client_connections_connected", "legendFormat": "Connected" },
+        { "expr": "proxysql_mysql_status_client_connections_non_idle", "legendFormat": "Non-Idle" },
+        { "expr": "proxysql_mysql_status_client_connections_hostgroup_locked", "legendFormat": "HG Locked" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 11,
+      "title": "Client Connections Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_client_connections_created[1m])", "legendFormat": "Created/s" },
+        { "expr": "rate(proxysql_mysql_status_client_connections_aborted[1m])", "legendFormat": "Aborted/s" },
+        { "expr": "rate(proxysql_mysql_status_client_host_error_killed_connections[1m])", "legendFormat": "Host Error Killed/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+
+    {
+      "id": 102,
+      "title": "Server Connections",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
+      "collapsed": false
+    },
+    {
+      "id": 20,
+      "title": "Server Connections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "proxysql_mysql_status_server_connections_connected", "legendFormat": "Connected" },
+        { "expr": "proxysql_mysql_status_server_connections_delayed", "legendFormat": "Delayed" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 21,
+      "title": "Server Connections Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_server_connections_created[1m])", "legendFormat": "Created/s" },
+        { "expr": "rate(proxysql_mysql_status_server_connections_aborted[1m])", "legendFormat": "Aborted/s" },
+        { "expr": "rate(proxysql_mysql_status_mysql_killed_backend_connections[1m])", "legendFormat": "Killed/s" },
+        { "expr": "rate(proxysql_mysql_status_mysql_killed_backend_queries[1m])", "legendFormat": "Killed Queries/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+
+    {
+      "id": 103,
+      "title": "Query Throughput",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
+      "collapsed": false
+    },
+    {
+      "id": 30,
+      "title": "Questions (QPS)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_questions[1m])", "legendFormat": "Total QPS" },
+        { "expr": "rate(proxysql_mysql_status_slow_queries[1m])", "legendFormat": "Slow Queries/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 31,
+      "title": "Prepared Statements Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_com_frontend_stmt_execute[1m])", "legendFormat": "Frontend Execute/s" },
+        { "expr": "rate(proxysql_mysql_status_com_backend_stmt_execute[1m])", "legendFormat": "Backend Execute/s" },
+        { "expr": "rate(proxysql_mysql_status_com_frontend_stmt_prepare[1m])", "legendFormat": "Frontend Prepare/s" },
+        { "expr": "rate(proxysql_mysql_status_com_backend_stmt_prepare[1m])", "legendFormat": "Backend Prepare/s" },
+        { "expr": "rate(proxysql_mysql_status_com_frontend_stmt_close[1m])", "legendFormat": "Frontend Close/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 32,
+      "title": "Command Counters Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_com_autocommit[1m])", "legendFormat": "Autocommit/s" },
+        { "expr": "rate(proxysql_mysql_status_com_autocommit_filtered[1m])", "legendFormat": "Autocommit Filtered/s" },
+        { "expr": "rate(proxysql_mysql_status_com_commit[1m])", "legendFormat": "Commit/s" },
+        { "expr": "rate(proxysql_mysql_status_com_commit_filtered[1m])", "legendFormat": "Commit Filtered/s" },
+        { "expr": "rate(proxysql_mysql_status_com_rollback[1m])", "legendFormat": "Rollback/s" },
+        { "expr": "rate(proxysql_mysql_status_com_rollback_filtered[1m])", "legendFormat": "Rollback Filtered/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 33,
+      "title": "Backend Commands Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_com_backend_init_db[1m])", "legendFormat": "Init DB/s" },
+        { "expr": "rate(proxysql_mysql_status_com_backend_set_names[1m])", "legendFormat": "Set Names/s" },
+        { "expr": "rate(proxysql_mysql_status_com_backend_change_user[1m])", "legendFormat": "Change User/s" },
+        { "expr": "rate(proxysql_mysql_status_selects_for_update__autocommit0[1m])", "legendFormat": "SELECT FOR UPDATE (ac0)/s" },
+        { "expr": "rate(proxysql_mysql_status_hostgroup_locked_queries[1m])", "legendFormat": "HG Locked Queries/s" },
+        { "expr": "rate(proxysql_mysql_status_hostgroup_locked_set_cmds[1m])", "legendFormat": "HG Locked SET Cmds/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+
+    {
+      "id": 104,
+      "title": "Network Traffic",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 40 },
+      "collapsed": false
+    },
+    {
+      "id": 40,
+      "title": "Frontend Traffic (Client <-> ProxySQL)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_queries_frontends_bytes_recv[1m])", "legendFormat": "Recv from clients" },
+        { "expr": "rate(proxysql_mysql_status_queries_frontends_bytes_sent[1m])", "legendFormat": "Sent to clients" }
       ],
       "fieldConfig": { "defaults": { "unit": "Bps" } }
     },
     {
-      "id": 7,
-      "title": "Connection Pool - Queries by Hostgroup",
+      "id": 41,
+      "title": "Backend Traffic (ProxySQL <-> MySQL)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_queries_backends_bytes_recv[1m])", "legendFormat": "Recv from backends" },
+        { "expr": "rate(proxysql_mysql_status_queries_backends_bytes_sent[1m])", "legendFormat": "Sent to backends" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "Bps" } }
+    },
+
+    {
+      "id": 105,
+      "title": "Connection Pool (per Server)",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 49 },
+      "collapsed": false
+    },
+    {
+      "id": 50,
+      "title": "Pool - Queries by Hostgroup",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 50 },
       "datasource": "Prometheus",
       "targets": [
         { "expr": "rate(proxysql_connection_pool_queries{hostgroup=\"10\"}[1m])", "legendFormat": "Writer HG10 - {{endpoint}}" },
+        { "expr": "rate(proxysql_connection_pool_queries{hostgroup=\"11\"}[1m])", "legendFormat": "Backup Writer HG11 - {{endpoint}}" },
         { "expr": "rate(proxysql_connection_pool_queries{hostgroup=\"12\"}[1m])", "legendFormat": "Reader HG12 - {{endpoint}}" }
       ],
       "fieldConfig": { "defaults": { "unit": "ops" } }
     },
     {
-      "id": 8,
-      "title": "Connection Pool - Used Connections",
+      "id": 51,
+      "title": "Pool - Connections Used / Free",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 50 },
       "datasource": "Prometheus",
       "targets": [
         { "expr": "proxysql_connection_pool_conn_used", "legendFormat": "Used - {{endpoint}} HG{{hostgroup}}" },
@@ -110,10 +273,10 @@
       "fieldConfig": { "defaults": { "unit": "short" } }
     },
     {
-      "id": 9,
-      "title": "Connection Pool - Latency",
+      "id": 52,
+      "title": "Pool - Latency (ms)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 58 },
       "datasource": "Prometheus",
       "targets": [
         { "expr": "proxysql_connection_pool_latency_us / 1000", "legendFormat": "{{endpoint}} HG{{hostgroup}}" }
@@ -121,39 +284,270 @@
       "fieldConfig": { "defaults": { "unit": "ms" } }
     },
     {
-      "id": 10,
-      "title": "Connection Pool - Data Transfer",
+      "id": 53,
+      "title": "Pool - Data Transfer per Server",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 58 },
       "datasource": "Prometheus",
       "targets": [
-        { "expr": "rate(proxysql_connection_pool_bytes_data_recv[1m])", "legendFormat": "Recv - {{endpoint}}" },
-        { "expr": "rate(proxysql_connection_pool_bytes_data_sent[1m])", "legendFormat": "Sent - {{endpoint}}" }
+        { "expr": "rate(proxysql_connection_pool_bytes_data_recv[1m])", "legendFormat": "Recv - {{endpoint}} HG{{hostgroup}}" },
+        { "expr": "rate(proxysql_connection_pool_bytes_data_sent[1m])", "legendFormat": "Sent - {{endpoint}} HG{{hostgroup}}" }
       ],
       "fieldConfig": { "defaults": { "unit": "Bps" } }
     },
     {
-      "id": 11,
-      "title": "Stmt Execution Rate",
+      "id": 54,
+      "title": "Pool - Connection OK / Errors",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 32 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 66 },
       "datasource": "Prometheus",
       "targets": [
-        { "expr": "rate(proxysql_mysql_status_com_frontend_stmt_execute[1m])", "legendFormat": "Frontend Execute/s" },
-        { "expr": "rate(proxysql_mysql_status_com_backend_stmt_execute[1m])", "legendFormat": "Backend Execute/s" }
+        { "expr": "rate(proxysql_connection_pool_conn_ok[1m])", "legendFormat": "OK - {{endpoint}} HG{{hostgroup}}" },
+        { "expr": "rate(proxysql_connection_pool_conn_err[1m])", "legendFormat": "Err - {{endpoint}} HG{{hostgroup}}" }
       ],
       "fieldConfig": { "defaults": { "unit": "ops" } }
     },
     {
-      "id": 12,
-      "title": "Monitor Health Checks",
+      "id": 55,
+      "title": "Pool - Max Connections Used / GTID Sync",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 32 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 66 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "proxysql_connection_pool_maxconnused", "legendFormat": "MaxConnUsed - {{endpoint}} HG{{hostgroup}}" },
+        { "expr": "rate(proxysql_connection_pool_queries_gtid_sync[1m])", "legendFormat": "GTID Sync/s - {{endpoint}} HG{{hostgroup}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+    {
+      "id": 56,
+      "title": "Pool - Server Status",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 74 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "proxysql_connection_pool_status", "legendFormat": "{{endpoint}} HG{{hostgroup}}" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "mappings": [{ "type": "value", "options": { "1": { "text": "ONLINE" }, "2": { "text": "SHUNNED" }, "3": { "text": "OFFLINE_SOFT" }, "4": { "text": "OFFLINE_HARD" } } }] } }
+    },
+
+    {
+      "id": 106,
+      "title": "Connection Pooling Efficiency",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 82 },
+      "collapsed": false
+    },
+    {
+      "id": 60,
+      "title": "ConnPool Get Connection",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 83 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_connpool_get_conn_success[1m])", "legendFormat": "Success/s" },
+        { "expr": "rate(proxysql_mysql_status_connpool_get_conn_failure[1m])", "legendFormat": "Failure/s" },
+        { "expr": "rate(proxysql_mysql_status_connpool_get_conn_immediate[1m])", "legendFormat": "Immediate/s" },
+        { "expr": "rate(proxysql_mysql_status_connpool_get_conn_latency_awareness[1m])", "legendFormat": "Latency Awareness/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 61,
+      "title": "Internal Connection Pool Operations",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 83 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_myhgm_myconnpoll_get[1m])", "legendFormat": "Get/s" },
+        { "expr": "rate(proxysql_mysql_status_myhgm_myconnpoll_get_ok[1m])", "legendFormat": "Get OK/s" },
+        { "expr": "rate(proxysql_mysql_status_myhgm_myconnpoll_push[1m])", "legendFormat": "Push/s" },
+        { "expr": "rate(proxysql_mysql_status_myhgm_myconnpoll_destroy[1m])", "legendFormat": "Destroy/s" },
+        { "expr": "rate(proxysql_mysql_status_myhgm_myconnpoll_reset[1m])", "legendFormat": "Reset/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+
+    {
+      "id": 107,
+      "title": "Memory",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 91 },
+      "collapsed": false
+    },
+    {
+      "id": 70,
+      "title": "Memory Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 92 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "proxysql_mysql_status_connpool_memory_bytes", "legendFormat": "ConnPool Memory" },
+        { "expr": "proxysql_mysql_status_mysql_backend_buffers_bytes", "legendFormat": "Backend Buffers" },
+        { "expr": "proxysql_mysql_status_mysql_frontend_buffers_bytes", "legendFormat": "Frontend Buffers" },
+        { "expr": "proxysql_mysql_status_mysql_session_internal_bytes", "legendFormat": "Session Internal" },
+        { "expr": "proxysql_mysql_status_sqlite3_memory_bytes", "legendFormat": "SQLite3" },
+        { "expr": "proxysql_mysql_status_query_cache_memory_bytes", "legendFormat": "Query Cache" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "id": 71,
+      "title": "Prepared Statements Cache",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 92 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "proxysql_mysql_status_stmt_cached", "legendFormat": "Cached" },
+        { "expr": "proxysql_mysql_status_stmt_client_active_total", "legendFormat": "Client Active Total" },
+        { "expr": "proxysql_mysql_status_stmt_client_active_unique", "legendFormat": "Client Active Unique" },
+        { "expr": "proxysql_mysql_status_stmt_server_active_total", "legendFormat": "Server Active Total" },
+        { "expr": "proxysql_mysql_status_stmt_server_active_unique", "legendFormat": "Server Active Unique" },
+        { "expr": "proxysql_mysql_status_stmt_max_stmt_id", "legendFormat": "Max Stmt ID" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+
+    {
+      "id": 108,
+      "title": "Query Cache",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 100 },
+      "collapsed": false
+    },
+    {
+      "id": 75,
+      "title": "Query Cache Operations",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 101 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_query_cache_count_get[1m])", "legendFormat": "Get/s" },
+        { "expr": "rate(proxysql_mysql_status_query_cache_count_get_ok[1m])", "legendFormat": "Get OK (hit)/s" },
+        { "expr": "rate(proxysql_mysql_status_query_cache_count_set[1m])", "legendFormat": "Set/s" },
+        { "expr": "rate(proxysql_mysql_status_query_cache_purged[1m])", "legendFormat": "Purged/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 76,
+      "title": "Query Cache Data",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 101 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "proxysql_mysql_status_query_cache_entries", "legendFormat": "Entries" },
+        { "expr": "rate(proxysql_mysql_status_query_cache_bytes_in[1m])", "legendFormat": "Bytes In/s" },
+        { "expr": "rate(proxysql_mysql_status_query_cache_bytes_out[1m])", "legendFormat": "Bytes Out/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+
+    {
+      "id": 109,
+      "title": "Errors & Security",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 109 },
+      "collapsed": false
+    },
+    {
+      "id": 80,
+      "title": "Access Denied & Errors",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 110 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_access_denied_wrong_password[1m])", "legendFormat": "Wrong Password/s" },
+        { "expr": "rate(proxysql_mysql_status_access_denied_max_connections[1m])", "legendFormat": "Max Connections/s" },
+        { "expr": "rate(proxysql_mysql_status_access_denied_max_user_connections[1m])", "legendFormat": "Max User Connections/s" },
+        { "expr": "rate(proxysql_mysql_status_automatic_detected_sql_injection[1m])", "legendFormat": "SQL Injection Detected/s" },
+        { "expr": "rate(proxysql_mysql_status_generated_error_packets[1m])", "legendFormat": "Generated Errors/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 81,
+      "title": "Backend Issues",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 110 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_mysql_status_backend_lagging_during_query[1m])", "legendFormat": "Lagging During Query/s" },
+        { "expr": "rate(proxysql_mysql_status_backend_offline_during_query[1m])", "legendFormat": "Offline During Query/s" },
+        { "expr": "rate(proxysql_mysql_status_max_connect_timeouts[1m])", "legendFormat": "Connect Timeouts/s" },
+        { "expr": "rate(proxysql_mysql_status_mysql_unexpected_frontend_com_quit[1m])", "legendFormat": "Unexpected Quit/s" },
+        { "expr": "rate(proxysql_mysql_status_mysql_unexpected_frontend_packets[1m])", "legendFormat": "Unexpected Packets/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+
+    {
+      "id": 110,
+      "title": "Monitor Health Checks",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 118 },
+      "collapsed": false
+    },
+    {
+      "id": 90,
+      "title": "Monitor Checks",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 119 },
       "datasource": "Prometheus",
       "targets": [
         { "expr": "rate(proxysql_mysql_status_mysql_monitor_ping_check_ok[1m])", "legendFormat": "Ping OK/s" },
+        { "expr": "rate(proxysql_mysql_status_mysql_monitor_ping_check_err[1m])", "legendFormat": "Ping Err/s" },
         { "expr": "rate(proxysql_mysql_status_mysql_monitor_connect_check_ok[1m])", "legendFormat": "Connect OK/s" },
-        { "expr": "rate(proxysql_mysql_status_mysql_monitor_ping_check_err[1m])", "legendFormat": "Ping Err/s" }
+        { "expr": "rate(proxysql_mysql_status_mysql_monitor_connect_check_err[1m])", "legendFormat": "Connect Err/s" },
+        { "expr": "rate(proxysql_mysql_status_mysql_monitor_read_only_check_ok[1m])", "legendFormat": "ReadOnly OK/s" },
+        { "expr": "rate(proxysql_mysql_status_mysql_monitor_read_only_check_err[1m])", "legendFormat": "ReadOnly Err/s" },
+        { "expr": "rate(proxysql_mysql_status_mysql_monitor_replication_lag_check_ok[1m])", "legendFormat": "Repl Lag OK/s" },
+        { "expr": "rate(proxysql_mysql_status_mysql_monitor_replication_lag_check_err[1m])", "legendFormat": "Repl Lag Err/s" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" } }
+    },
+    {
+      "id": 91,
+      "title": "Monitor Workers & Threads",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 119 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "proxysql_mysql_status_mysql_monitor_workers", "legendFormat": "Monitor Workers" },
+        { "expr": "proxysql_mysql_status_mysql_monitor_workers_aux", "legendFormat": "Monitor Workers Aux" },
+        { "expr": "proxysql_mysql_status_mysql_monitor_workers_started", "legendFormat": "Monitor Workers Started" },
+        { "expr": "proxysql_mysql_status_mysql_thread_workers", "legendFormat": "Thread Workers" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" } }
+    },
+
+    {
+      "id": 111,
+      "title": "Exporter",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 127 },
+      "collapsed": false
+    },
+    {
+      "id": 95,
+      "title": "Exporter Scrape",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 128 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "proxysql_exporter_last_scrape_duration_seconds", "legendFormat": "Scrape Duration" },
+        { "expr": "proxysql_exporter_last_scrape_error", "legendFormat": "Last Scrape Error" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 96,
+      "title": "Exporter Scrapes Total",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 128 },
+      "datasource": "Prometheus",
+      "targets": [
+        { "expr": "rate(proxysql_exporter_scrapes_total[1m])", "legendFormat": "Scrapes/s" }
       ],
       "fieldConfig": { "defaults": { "unit": "ops" } }
     }
