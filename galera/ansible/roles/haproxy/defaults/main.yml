@@ -8,6 +8,7 @@ haproxy_write_port: 3306
 haproxy_read_port: 3307
 haproxy_stats_port: 8404
 haproxy_check_port: 9200
+haproxy_prometheus_port: 8405
 
 # Stats
 haproxy_stats_user: "admin"

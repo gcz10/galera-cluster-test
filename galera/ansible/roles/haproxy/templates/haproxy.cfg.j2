@@ -46,6 +46,16 @@ listen stats
     stats auth {{ haproxy_stats_user }}:{{ haproxy_stats_password }}
 
 # =============================================================================
+# Prometheus Metrics Endpoint
+# http://{{ ansible_host }}:{{ haproxy_prometheus_port }}/metrics
+# =============================================================================
+frontend prometheus
+    bind *:{{ haproxy_prometheus_port }}
+    mode http
+    http-request use-service prometheus-exporter if { path /metrics }
+    no log
+
+# =============================================================================
 # Galera Write Pool (Single-Master Pattern)
 # Port: {{ haproxy_write_port }}
 # =============================================================================

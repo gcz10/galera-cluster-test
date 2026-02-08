@@ -52,6 +52,14 @@
 # Konfiguracja przez Admin Interface
 # -----------------------------------------------------------------------------
 
+- name: Sprawdz czy haslo admin jest juz ustawione
+  shell: |
+    mysql -u admin -p'{{ proxysql_admin_password }}' -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "SELECT 1" 2>/dev/null
+  no_log: true
+  register: proxysql_admin_check
+  changed_when: false
+  failed_when: false
+
 - name: Ustaw haslo admin ProxySQL
   shell: |
     mysql -u admin -padmin -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
@@ -61,7 +69,8 @@
     SAVE ADMIN VARIABLES TO DISK;
     "
   no_log: true
-  changed_when: false
+  changed_when: true
+  when: proxysql_admin_check.rc != 0
 
 - name: Konfiguruj zmienne monitoringu
   shell: |
@@ -197,25 +206,75 @@
   no_log: true
   changed_when: false
 
-- name: Wyswietl informacje o ProxySQL
-  debug:
-    msg: |
-      ProxySQL skonfigurowany!
+# -----------------------------------------------------------------------------
+# Prometheus exporter for ProxySQL
+# -----------------------------------------------------------------------------
 
-      Porty:
-      - MySQL: {{ proxysql_port }} (automatyczny read/write split)
-      - Admin: {{ proxysql_admin_port }}
+- name: Download proxysql_exporter
+  ansible.builtin.get_url:
+    url: "https://github.com/percona/proxysql_exporter/releases/download/v{{ proxysql_exporter_version }}/proxysql_exporter_linux_amd64.tar.gz"
+    dest: /tmp/proxysql_exporter.tar.gz
+    mode: "0644"
 
-      Hostgroups:
-      - Writer: {{ proxysql_writer_hostgroup }}
-      - Reader: {{ proxysql_reader_hostgroup }}
+- name: Create temp extraction directory
+  ansible.builtin.file:
+    path: /tmp/proxysql_exporter_extract
+    state: directory
+    mode: "0755"
 
-      Connection string dla aplikacji:
-      mysql -h {{ ansible_host }} -P {{ proxysql_port }} -u app_user -p
+- name: Extract proxysql_exporter
+  ansible.builtin.unarchive:
+    src: /tmp/proxysql_exporter.tar.gz
+    dest: /tmp/proxysql_exporter_extract/
+    remote_src: true
 
-      Admin interface:
-      mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }}
+- name: Install proxysql_exporter binary
+  ansible.builtin.shell: |
+    find /tmp/proxysql_exporter_extract -name proxysql_exporter -type f -exec cp {} /usr/local/bin/proxysql_exporter \;
+    chmod 0755 /usr/local/bin/proxysql_exporter
+  args:
+    creates: /usr/local/bin/proxysql_exporter
 
-      Przydatne komendy:
-      - Status serwerow: SELECT * FROM stats_mysql_connection_pool;
-      - Status Galera: SELECT * FROM mysql_galera_hostgroups;
+- name: Create proxysql_exporter systemd service
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/proxysql_exporter.service
+    content: |
+      [Unit]
+      Description=ProxySQL Exporter
+      Wants=network-online.target
+      After=network-online.target proxysql.service
+
+      [Service]
+      Type=simple
+      Environment="DATA_SOURCE_NAME=admin:{{ proxysql_admin_password }}@tcp(127.0.0.1:{{ proxysql_admin_port }})/"
+      ExecStart=/usr/local/bin/proxysql_exporter \
+        --web.listen-address=0.0.0.0:{{ proxysql_exporter_port }}
+      Restart=on-failure
+
+      [Install]
+      WantedBy=multi-user.target
+    mode: "0644"
+  no_log: true
+  notify: restart proxysql_exporter
+
+- name: Open firewall port for proxysql_exporter
+  ansible.posix.firewalld:
+    port: "{{ proxysql_exporter_port }}/tcp"
+    permanent: true
+    state: enabled
+    immediate: true
+
+- name: Enable and start proxysql_exporter
+  ansible.builtin.systemd:
+    name: proxysql_exporter
+    state: started
+    enabled: true
+    daemon_reload: true
+
+- name: Clean up proxysql_exporter temp files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/proxysql_exporter.tar.gz
+    - /tmp/proxysql_exporter_extract

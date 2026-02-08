@@ -8,3 +8,19 @@ scrape_configs:
 {% for host in groups['galera'] %}
           - '{{ hostvars[host].ansible_host }}:{{ mysqld_exporter_port }}'
 {% endfor %}
+
+{% if groups['loadbalancer'] is defined and groups['loadbalancer'] | length > 0 %}
+  - job_name: 'haproxy'
+    static_configs:
+      - targets:
+{% for host in groups['loadbalancer'] %}
+          - '{{ hostvars[host].ansible_host }}:{{ haproxy_prometheus_port | default(8405) }}'
+{% endfor %}
+
+  - job_name: 'proxysql'
+    static_configs:
+      - targets:
+{% for host in groups['loadbalancer'] %}
+          - '{{ hostvars[host].ansible_host }}:{{ proxysql_exporter_port | default(42004) }}'
+{% endfor %}
+{% endif %}

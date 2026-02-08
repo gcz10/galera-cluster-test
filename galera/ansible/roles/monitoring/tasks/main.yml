@@ -132,6 +132,9 @@
     - PXC_Galera_Nodes_Compare.json
     - MySQL_Instance_Summary.json
     - MySQL_InnoDB_Details.json
+    - haproxy-dashboard.json
+    - proxysql-dashboard.json
+    - proxysql-host-stats-dashboard.json
   notify: Restart grafana
 
 # --- Firewall & services ---

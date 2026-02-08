@@ -53,6 +53,7 @@
     - "{{ haproxy_write_port }}/tcp"
     - "{{ haproxy_read_port }}/tcp"
     - "{{ haproxy_stats_port }}/tcp"
+    - "{{ haproxy_prometheus_port }}/tcp"
 
 - name: Wlacz i uruchom HAProxy
   ansible.builtin.systemd:

@@ -3,3 +3,9 @@
   systemd:
     name: proxysql
     state: restarted
+
+- name: restart proxysql_exporter
+  systemd:
+    name: proxysql_exporter
+    state: restarted
+    daemon_reload: true
