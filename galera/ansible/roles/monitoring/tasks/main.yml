@@ -127,6 +127,11 @@
     - galera-dashboard.json
     - mysql-overview-percona.json
     - mysql-galera-cluster.json
+    - PXC_Galera_Cluster_Summary.json
+    - PXC_Galera_Node_Summary.json
+    - PXC_Galera_Nodes_Compare.json
+    - MySQL_Instance_Summary.json
+    - MySQL_InnoDB_Details.json
   notify: Restart grafana
 
 # --- Firewall & services ---

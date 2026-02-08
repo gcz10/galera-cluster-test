@@ -32,7 +32,7 @@ resource "proxmox_virtual_environment_vm" "monitoring" {
   }
 
   memory {
-    dedicated = 2048
+    dedicated = 4096
   }
 
   disk {
