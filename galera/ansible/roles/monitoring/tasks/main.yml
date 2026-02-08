@@ -134,7 +134,6 @@
     - MySQL_InnoDB_Details.json
     - haproxy-dashboard.json
     - proxysql-dashboard.json
-    - proxysql-host-stats-dashboard.json
   notify: Restart grafana
 
 # --- Firewall & services ---
