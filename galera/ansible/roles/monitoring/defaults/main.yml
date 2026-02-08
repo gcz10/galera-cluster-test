@@ -1,0 +1,6 @@
+---
+prometheus_version: "3.2.1"
+prometheus_port: 9090
+grafana_port: 3000
+mysqld_exporter_port: 9104
+prometheus_scrape_interval: 15s

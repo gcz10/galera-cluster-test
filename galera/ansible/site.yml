@@ -42,3 +42,10 @@
   tags: [monitoring, exporter]
   roles:
     - prometheus-exporter
+
+# Phase 6: Prometheus + Grafana monitoring server
+- name: Deploy Prometheus + Grafana monitoring
+  hosts: monitoring
+  tags: [monitoring, grafana]
+  roles:
+    - monitoring

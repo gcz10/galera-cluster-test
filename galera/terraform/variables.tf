@@ -40,3 +40,16 @@ variable "galera_nodes" {
     node3 = { vm_id = 503, ip = "192.168.1.53", name = "galera-3" }
   }
 }
+
+variable "monitoring_vm" {
+  type = object({
+    vm_id = number
+    ip    = string
+    name  = string
+  })
+  default = {
+    vm_id = 504
+    ip    = "192.168.1.54"
+    name  = "grafana-1"
+  }
+}

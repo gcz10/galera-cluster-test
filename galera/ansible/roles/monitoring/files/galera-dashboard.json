@@ -1,0 +1,153 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "title": "Cluster Size",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 2 },
+              { "color": "green", "value": 3 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "mysql_global_status_wsrep_cluster_size", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "title": "Cluster Status",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "Primary", "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "Non-Primary", "color": "red" } } }
+          ]
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "mysql_global_status_wsrep_cluster_status", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "title": "Node Ready",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "1": { "text": "Ready", "color": "green" } } },
+            { "type": "value", "options": { "0": { "text": "Not Ready", "color": "red" } } }
+          ]
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "mysql_global_status_wsrep_ready", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "title": "Flow Control Paused",
+      "type": "stat",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [{ "expr": "rate(mysql_global_status_wsrep_flow_control_paused_ns[5m]) / 1e9", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "title": "Queries Per Second",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [{ "expr": "rate(mysql_global_status_queries[5m])", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "title": "Active Connections",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "mysql_global_status_threads_connected", "legendFormat": "{{instance}} connected" },
+        { "expr": "mysql_global_status_threads_running", "legendFormat": "{{instance}} running" }
+      ]
+    },
+    {
+      "title": "Galera Replication Queue",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] },
+      "targets": [
+        { "expr": "mysql_global_status_wsrep_local_recv_queue", "legendFormat": "{{instance}} recv" },
+        { "expr": "mysql_global_status_wsrep_local_send_queue", "legendFormat": "{{instance}} send" }
+      ]
+    },
+    {
+      "title": "Galera Replication Throughput",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "Bps" }, "overrides": [] },
+      "targets": [
+        { "expr": "rate(mysql_global_status_wsrep_received_bytes[5m])", "legendFormat": "{{instance}} received" },
+        { "expr": "rate(mysql_global_status_wsrep_replicated_bytes[5m])", "legendFormat": "{{instance}} replicated" }
+      ]
+    },
+    {
+      "title": "Slow Queries",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] },
+      "targets": [{ "expr": "rate(mysql_global_status_slow_queries[5m])", "legendFormat": "{{instance}}" }]
+    },
+    {
+      "title": "InnoDB Buffer Pool Usage",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "${datasource}" },
+      "fieldConfig": { "defaults": { "unit": "bytes" }, "overrides": [] },
+      "targets": [
+        { "expr": "mysql_global_status_innodb_buffer_pool_bytes_data", "legendFormat": "{{instance}} data" },
+        { "expr": "mysql_global_status_innodb_buffer_pool_bytes_dirty", "legendFormat": "{{instance}} dirty" }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": { "text": "Prometheus", "value": "Prometheus" }
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Galera Cluster Overview",
+  "uid": "galera-overview",
+  "version": 1
+}
