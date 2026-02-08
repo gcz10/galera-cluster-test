@@ -1,0 +1,2 @@
+galera_cluster_name: "galera_cluster"
+mariadb_root_password: "ChangeMe!Galera2024"

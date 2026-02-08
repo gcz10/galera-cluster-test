@@ -1,0 +1,9 @@
+---
+- name: reload systemd
+  systemd:
+    daemon_reload: yes
+
+- name: restart mysqld_exporter
+  systemd:
+    name: mysqld_exporter
+    state: restarted

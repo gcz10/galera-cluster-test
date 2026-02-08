@@ -1,0 +1,211 @@
+---
+# =============================================================================
+# Rola: proxysql - Load Balancer dla Galera (Opcja B)
+# =============================================================================
+
+- name: Dodaj repozytorium ProxySQL
+  copy:
+    dest: /etc/yum.repos.d/proxysql.repo
+    content: |
+      [proxysql]
+      name = ProxySQL
+      baseurl = https://repo.proxysql.com/ProxySQL/proxysql-2.7.x/centos/$releasever
+      gpgcheck = 1
+      gpgkey = https://repo.proxysql.com/ProxySQL/proxysql-2.7.x/repo_pub_key
+      enabled = 1
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Zainstaluj ProxySQL
+  dnf:
+    name:
+      - proxysql
+      - mysql
+    state: present
+    update_cache: yes
+
+- name: Wlacz i uruchom ProxySQL
+  systemd:
+    name: proxysql
+    state: started
+    enabled: yes
+
+- name: Poczekaj na uruchomienie ProxySQL
+  wait_for:
+    port: "{{ proxysql_admin_port }}"
+    host: 127.0.0.1
+    delay: 5
+    timeout: 60
+
+# -----------------------------------------------------------------------------
+# Konfiguracja przez Admin Interface
+# -----------------------------------------------------------------------------
+
+- name: Ustaw haslo admin ProxySQL
+  shell: |
+    mysql -u admin -padmin -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    UPDATE global_variables SET variable_value='{{ proxysql_admin_password }}'
+    WHERE variable_name='admin-admin_credentials';
+    LOAD ADMIN VARIABLES TO RUNTIME;
+    SAVE ADMIN VARIABLES TO DISK;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Konfiguruj zmienne monitoringu
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    UPDATE global_variables SET variable_value='{{ proxysql_monitor_user }}'
+    WHERE variable_name='mysql-monitor_username';
+    UPDATE global_variables SET variable_value='{{ proxysql_monitor_password }}'
+    WHERE variable_name='mysql-monitor_password';
+    UPDATE global_variables SET variable_value='{{ proxysql_monitor_interval }}'
+    WHERE variable_name='mysql-monitor_galera_healthcheck_interval';
+    UPDATE global_variables SET variable_value='{{ proxysql_monitor_connect_timeout }}'
+    WHERE variable_name='mysql-monitor_connect_timeout';
+    UPDATE global_variables SET variable_value='{{ proxysql_monitor_ping_timeout }}'
+    WHERE variable_name='mysql-monitor_ping_timeout';
+    LOAD MYSQL VARIABLES TO RUNTIME;
+    SAVE MYSQL VARIABLES TO DISK;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Usun istniejaca konfiguracje Galera hostgroups
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    DELETE FROM mysql_galera_hostgroups;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Konfiguruj Galera hostgroups
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    INSERT INTO mysql_galera_hostgroups (
+      writer_hostgroup,
+      backup_writer_hostgroup,
+      reader_hostgroup,
+      offline_hostgroup,
+      max_writers,
+      writer_is_also_reader,
+      max_transactions_behind,
+      active
+    ) VALUES (
+      {{ proxysql_writer_hostgroup }},
+      {{ proxysql_backup_writer_hostgroup }},
+      {{ proxysql_reader_hostgroup }},
+      {{ proxysql_offline_hostgroup }},
+      {{ proxysql_max_writers }},
+      {{ proxysql_writer_is_also_reader }},
+      {{ proxysql_max_transactions_behind }},
+      1
+    );
+    LOAD MYSQL SERVERS TO RUNTIME;
+    SAVE MYSQL SERVERS TO DISK;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Usun istniejace serwery MySQL
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    DELETE FROM mysql_servers;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Dodaj serwery Galera
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    INSERT INTO mysql_servers (hostgroup_id, hostname, port, weight, max_connections) VALUES
+    ({{ proxysql_writer_hostgroup }}, '{{ hostvars[item].ansible_host }}', {{ galera_mysql_port | default(3306) }}, 1000, {{ proxysql_max_connections }});
+    "
+  loop: "{{ groups['galera'] }}"
+  no_log: true
+  changed_when: false
+
+- name: Zaladuj serwery do runtime
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    LOAD MYSQL SERVERS TO RUNTIME;
+    SAVE MYSQL SERVERS TO DISK;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Usun istniejacych uzytkownikow MySQL
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    DELETE FROM mysql_users;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Dodaj uzytkownikow aplikacji
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    INSERT INTO mysql_users (username, password, default_hostgroup, transaction_persistent)
+    VALUES ('{{ item.name }}', '{{ item.password }}', {{ proxysql_writer_hostgroup }}, 1);
+    "
+  loop: "{{ app_users | default([]) }}"
+  no_log: true
+  changed_when: false
+
+- name: Zaladuj uzytkownikow do runtime
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    LOAD MYSQL USERS TO RUNTIME;
+    SAVE MYSQL USERS TO DISK;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Usun istniejace query rules
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    DELETE FROM mysql_query_rules;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Konfiguruj query rules (read/write split)
+  shell: |
+    mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }} -e "
+    -- SELECT ... FOR UPDATE -> writer
+    INSERT INTO mysql_query_rules (rule_id, active, match_pattern, destination_hostgroup, apply)
+    VALUES (1, 1, '^SELECT .* FOR UPDATE', {{ proxysql_writer_hostgroup }}, 1);
+
+    -- SELECT -> reader
+    INSERT INTO mysql_query_rules (rule_id, active, match_pattern, destination_hostgroup, apply)
+    VALUES (2, 1, '^SELECT', {{ proxysql_reader_hostgroup }}, 1);
+
+    LOAD MYSQL QUERY RULES TO RUNTIME;
+    SAVE MYSQL QUERY RULES TO DISK;
+    "
+  no_log: true
+  changed_when: false
+
+- name: Wyswietl informacje o ProxySQL
+  debug:
+    msg: |
+      ProxySQL skonfigurowany!
+
+      Porty:
+      - MySQL: {{ proxysql_port }} (automatyczny read/write split)
+      - Admin: {{ proxysql_admin_port }}
+
+      Hostgroups:
+      - Writer: {{ proxysql_writer_hostgroup }}
+      - Reader: {{ proxysql_reader_hostgroup }}
+
+      Connection string dla aplikacji:
+      mysql -h {{ ansible_host }} -P {{ proxysql_port }} -u app_user -p
+
+      Admin interface:
+      mysql -u admin -p{{ proxysql_admin_password }} -h 127.0.0.1 -P {{ proxysql_admin_port }}
+
+      Przydatne komendy:
+      - Status serwerow: SELECT * FROM stats_mysql_connection_pool;
+      - Status Galera: SELECT * FROM mysql_galera_hostgroups;

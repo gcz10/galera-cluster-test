@@ -1,0 +1,150 @@
+---
+# Phase 1: Install and configure MariaDB on all nodes
+- name: Configure MariaDB Galera nodes
+  hosts: galera
+  become: true
+  handlers:
+    - import_tasks: handlers/main.yml
+  tasks:
+    - name: Add MariaDB 11.4 repository
+      ansible.builtin.template:
+        src: mariadb.repo.j2
+        dest: /etc/yum.repos.d/mariadb.repo
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Install MariaDB and Galera packages
+      ansible.builtin.dnf:
+        name:
+          - MariaDB-server
+          - MariaDB-client
+          - MariaDB-backup
+          - galera-4
+        state: present
+
+    - name: Open Galera firewall ports
+      ansible.posix.firewalld:
+        port: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - 3306/tcp
+        - 4567/tcp
+        - 4567/udp
+        - 4568/tcp
+        - 4444/tcp
+
+    - name: Set SELinux boolean for MariaDB networking
+      ansible.posix.seboolean:
+        name: mysql_connect_any
+        state: true
+        persistent: true
+
+    - name: Deploy Galera configuration
+      ansible.builtin.template:
+        src: galera.cnf.j2
+        dest: /etc/my.cnf.d/galera.cnf
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Enable mariadb service (do not start yet)
+      ansible.builtin.systemd:
+        name: mariadb
+        enabled: true
+
+# Phase 2: Bootstrap first node
+- name: Bootstrap Galera cluster
+  hosts: galera-1
+  become: true
+  tasks:
+    - name: Check if MariaDB is already running
+      ansible.builtin.command: systemctl is-active mariadb
+      register: mariadb_status
+      changed_when: false
+      failed_when: false
+
+    - name: Bootstrap Galera cluster
+      ansible.builtin.command: galera_new_cluster
+      when: mariadb_status.rc != 0
+
+    - name: Set MariaDB root password
+      community.mysql.mysql_user:
+        name: root
+        host: localhost
+        password: "{{ mariadb_root_password }}"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+        state: present
+      when: mariadb_status.rc != 0
+
+    - name: Remove anonymous users
+      community.mysql.mysql_user:
+        name: ""
+        host_all: true
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+        state: absent
+
+    - name: Remove test database
+      community.mysql.mysql_db:
+        name: test
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+        state: absent
+
+# Phase 3: Join remaining nodes one by one
+- name: Join nodes to Galera cluster
+  hosts: galera-2,galera-3
+  become: true
+  serial: 1
+  tasks:
+    - name: Check if MariaDB is already running
+      ansible.builtin.command: systemctl is-active mariadb
+      register: mariadb_status
+      changed_when: false
+      failed_when: false
+
+    - name: Start MariaDB (joins cluster via gcomm://)
+      ansible.builtin.systemd:
+        name: mariadb
+        state: started
+      when: mariadb_status.rc != 0
+
+    - name: Wait for node to sync with cluster
+      ansible.builtin.command:
+        cmd: >
+          mysql -u root -p'{{ mariadb_root_password }}' -Nse
+          "SHOW STATUS LIKE 'wsrep_local_state_comment'"
+      register: sync_status
+      until: "'Synced' in sync_status.stdout"
+      retries: 30
+      delay: 10
+      changed_when: false
+
+# Phase 4: Verify cluster
+- name: Verify Galera cluster
+  hosts: galera-1
+  become: true
+  tasks:
+    - name: Check cluster size
+      ansible.builtin.command:
+        cmd: >
+          mysql -u root -p'{{ mariadb_root_password }}' -Nse
+          "SHOW STATUS LIKE 'wsrep_cluster_size'"
+      register: cluster_size
+      changed_when: false
+
+    - name: Display cluster size
+      ansible.builtin.debug:
+        msg: "Galera cluster size: {{ cluster_size.stdout.split('\t')[1] }}"
+
+    - name: Assert cluster has 3 nodes
+      ansible.builtin.assert:
+        that:
+          - "'3' in cluster_size.stdout"
+        fail_msg: "Cluster size is not 3! Got: {{ cluster_size.stdout }}"
+        success_msg: "Galera cluster is healthy with 3 nodes"

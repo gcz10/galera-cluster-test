@@ -1,0 +1,91 @@
+# Galera Cluster Configuration
+# Managed by Ansible - DO NOT EDIT MANUALLY
+# Node: {{ inventory_hostname }}
+
+[mysqld]
+# =============================================================================
+# Galera Provider Configuration
+# =============================================================================
+
+wsrep_on = ON
+wsrep_provider = {{ galera_provider }}
+
+# Cluster Configuration
+wsrep_cluster_name = "{{ galera_cluster_name }}"
+wsrep_cluster_address = "gcomm://{{ galera_cluster_nodes }}"
+
+# Node Configuration
+wsrep_node_address = "{{ ansible_host }}:{{ galera_cluster_port }}"
+wsrep_node_name = "{{ inventory_hostname }}"
+
+# =============================================================================
+# State Snapshot Transfer (SST)
+# =============================================================================
+
+wsrep_sst_method = {{ galera_sst_method }}
+{% if galera_sst_method == 'mariabackup' %}
+wsrep_sst_auth = "{{ galera_backup_user }}:{{ galera_backup_password }}"
+{% endif %}
+
+# =============================================================================
+# Replication Settings
+# =============================================================================
+
+# Slave threads (parallelism) - set to 2x CPU cores
+wsrep_slave_threads = {{ galera_slave_threads }}
+
+# Binary log format MUST be ROW for Galera
+binlog_format = ROW
+
+# InnoDB autoinc lock mode MUST be 2 for Galera
+innodb_autoinc_lock_mode = 2
+
+# Default storage engine MUST be InnoDB
+default_storage_engine = InnoDB
+
+# Disable query cache (not compatible with Galera)
+query_cache_type = 0
+query_cache_size = 0
+
+# =============================================================================
+# Galera Provider Options
+# =============================================================================
+
+{% set provider_opts = [] -%}
+{% if galera_ssl_enabled | default(false) -%}
+{% set _ = provider_opts.append("socket.ssl = yes") -%}
+{% set _ = provider_opts.append("socket.ssl_cert = " ~ galera_ssl_cert) -%}
+{% set _ = provider_opts.append("socket.ssl_key = " ~ galera_ssl_key) -%}
+{% set _ = provider_opts.append("socket.ssl_ca = " ~ galera_ssl_ca) -%}
+{% endif -%}
+{% set _ = provider_opts.append("gcache.size = " ~ galera_gcache_size) -%}
+{% set _ = provider_opts.append("gcache.page_size = " ~ galera_gcache_page_size) -%}
+{% set _ = provider_opts.append("gcs.fc_limit = " ~ galera_fc_limit) -%}
+{% set _ = provider_opts.append("gcs.fc_factor = " ~ galera_fc_factor) -%}
+{% set _ = provider_opts.append("evs.keepalive_period = " ~ galera_evs_keepalive_period) -%}
+{% set _ = provider_opts.append("evs.inactive_check_period = " ~ galera_evs_inactive_check_period) -%}
+{% set _ = provider_opts.append("evs.inactive_timeout = " ~ galera_evs_inactive_timeout) -%}
+{% set _ = provider_opts.append("evs.suspect_timeout = " ~ galera_evs_suspect_timeout) -%}
+{% set _ = provider_opts.append("evs.install_timeout = " ~ galera_evs_install_timeout) -%}
+{% set _ = provider_opts.append("pc.weight = 1") -%}
+wsrep_provider_options = "{{ provider_opts | join('; ') }}"
+
+# =============================================================================
+# Transaction Limits
+# =============================================================================
+
+# Max rows per transaction
+wsrep_max_ws_rows = 128000
+
+# Max transaction size (2GB)
+wsrep_max_ws_size = 2147483647
+
+# =============================================================================
+# Logging
+# =============================================================================
+
+# Log conflicts (debug)
+# wsrep_log_conflicts = ON
+
+# Certification debug
+# wsrep_debug = ON

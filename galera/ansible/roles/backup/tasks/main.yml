@@ -1,0 +1,108 @@
+---
+# =============================================================================
+# Rola: backup - Konfiguracja backupu MariaDB Galera
+# =============================================================================
+
+- name: Utworz katalog backupu
+  file:
+    path: "{{ backup_dir }}"
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: '0750'
+
+- name: Utworz katalog dla skryptow backup
+  file:
+    path: /usr/local/bin
+    state: directory
+    mode: '0755'
+
+- name: Wdróż skrypt pelnego backupu
+  template:
+    src: backup-full.sh.j2
+    dest: /usr/local/bin/galera-backup-full.sh
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Wdróż skrypt inkrementalnego backupu
+  template:
+    src: backup-incremental.sh.j2
+    dest: /usr/local/bin/galera-backup-incremental.sh
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Wdróż skrypt przywracania
+  template:
+    src: restore.sh.j2
+    dest: /usr/local/bin/galera-restore.sh
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Wdróż skrypt czyszczenia starych backupow
+  template:
+    src: cleanup.sh.j2
+    dest: /usr/local/bin/galera-backup-cleanup.sh
+    owner: root
+    group: root
+    mode: '0750'
+
+- name: Konfiguruj cron dla pelnego backupu
+  cron:
+    name: "Galera full backup"
+    minute: "{{ backup_full_schedule.split()[0] }}"
+    hour: "{{ backup_full_schedule.split()[1] }}"
+    day: "{{ backup_full_schedule.split()[2] }}"
+    month: "{{ backup_full_schedule.split()[3] }}"
+    weekday: "{{ backup_full_schedule.split()[4] }}"
+    job: "/usr/local/bin/galera-backup-full.sh >> /var/log/galera-backup.log 2>&1"
+    user: root
+  when: inventory_hostname == groups['galera'] | last  # Backup tylko na ostatnim wezle
+
+- name: Konfiguruj cron dla inkrementalnego backupu
+  cron:
+    name: "Galera incremental backup"
+    minute: "{{ backup_incr_schedule.split()[0] }}"
+    hour: "{{ backup_incr_schedule.split()[1] }}"
+    day: "{{ backup_incr_schedule.split()[2] }}"
+    month: "{{ backup_incr_schedule.split()[3] }}"
+    weekday: "{{ backup_incr_schedule.split()[4] }}"
+    job: "/usr/local/bin/galera-backup-incremental.sh >> /var/log/galera-backup.log 2>&1"
+    user: root
+  when: inventory_hostname == groups['galera'] | last
+
+- name: Konfiguruj cron dla czyszczenia backupow
+  cron:
+    name: "Galera backup cleanup"
+    minute: "30"
+    hour: "3"
+    job: "/usr/local/bin/galera-backup-cleanup.sh >> /var/log/galera-backup.log 2>&1"
+    user: root
+  when: inventory_hostname == groups['galera'] | last
+
+- name: Utworz plik logow dla backupu
+  file:
+    path: /var/log/galera-backup.log
+    state: touch
+    owner: root
+    group: root
+    mode: '0640'
+
+- name: Konfiguruj logrotate dla logow backupu
+  copy:
+    dest: /etc/logrotate.d/galera-backup
+    content: |
+      /var/log/galera-backup.log {
+          weekly
+          rotate 4
+          compress
+          delaycompress
+          missingok
+          notifempty
+          create 0640 root root
+      }
+    owner: root
+    group: root
+    mode: '0644'

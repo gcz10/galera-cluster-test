@@ -1,0 +1,27 @@
+[Unit]
+Description=Prometheus MySQL Exporter
+Documentation=https://github.com/prometheus/mysqld_exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ mysqld_exporter_user }}
+Group={{ mysqld_exporter_user }}
+ExecStart=/usr/local/bin/mysqld_exporter \
+    --config.my-cnf=/etc/mysqld_exporter/.my.cnf \
+    --web.listen-address=:{{ mysqld_exporter_port }} \
+    --collect.info_schema.tables \
+    --collect.info_schema.innodb_metrics \
+    --collect.info_schema.processlist \
+    --collect.info_schema.query_response_time \
+    --collect.global_status \
+    --collect.global_variables \
+    --collect.slave_status \
+    --collect.engine_innodb_status
+
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

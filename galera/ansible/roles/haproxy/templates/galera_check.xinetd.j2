@@ -1,0 +1,19 @@
+# xinetd configuration for Galera health check
+# Managed by Ansible
+
+service galera_check
+{
+    port            = {{ haproxy_check_port | default(9200) }}
+    disable         = no
+    socket_type     = stream
+    protocol        = tcp
+    wait            = no
+    user            = nobody
+    group           = nobody
+    server          = /usr/local/bin/galera_check.sh
+    type            = UNLISTED
+    per_source      = UNLIMITED
+    log_on_success  =
+    log_on_failure  = HOST
+    flags           = REUSE
+}

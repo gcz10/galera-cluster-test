@@ -1,0 +1,156 @@
+---
+# =============================================================================
+# Rola: galera - Konfiguracja klastra MariaDB Galera
+# =============================================================================
+
+- name: Zatrzymaj MariaDB przed konfiguracja Galera
+  systemd:
+    name: mariadb
+    state: stopped
+  when: galera_force_reconfigure | default(false)
+
+- name: Wygeneruj liste adresow wezlow klastra
+  set_fact:
+    galera_cluster_nodes: "{{ groups['galera'] | map('extract', hostvars, 'ansible_host') | join(',') }}"
+
+- name: Utworz konfiguracje Galera
+  template:
+    src: galera.cnf.j2
+    dest: /etc/my.cnf.d/galera.cnf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart galera node
+
+- name: Ustaw flage galera_configured
+  set_fact:
+    galera_configured: true
+
+# -----------------------------------------------------------------------------
+# Bootstrap pierwszego wezla
+# -----------------------------------------------------------------------------
+
+- name: Sprawdz czy klaster juz istnieje
+  shell: |
+    mysql -u root -p{{ galera_root_password }} -e "SHOW GLOBAL STATUS LIKE 'wsrep_cluster_size'" 2>/dev/null | grep -o '[0-9]*$' || echo "0"
+  register: cluster_size_check
+  changed_when: false
+  failed_when: false
+  no_log: true
+  run_once: true
+  delegate_to: "{{ groups['galera'] | first }}"
+
+- name: Debug - wyswietl rozmiar klastra
+  debug:
+    msg: "Aktualny rozmiar klastra: {{ cluster_size_check.stdout | default('0') }}"
+  run_once: true
+
+# Bootstrap tylko jesli klaster nie istnieje
+- name: Bootstrap pierwszego wezla (galera_new_cluster)
+  block:
+    - name: Zatrzymaj MariaDB na wszystkich wezlach przed bootstrap
+      systemd:
+        name: mariadb
+        state: stopped
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['galera'] }}"
+      run_once: true
+
+    - name: Bootstrap pierwszego wezla
+      command: galera_new_cluster
+      args:
+        creates: /var/lib/mysql/galera.cache
+      delegate_to: "{{ groups['galera'] | first }}"
+      run_once: true
+
+    - name: Poczekaj na uruchomienie pierwszego wezla
+      wait_for:
+        port: "{{ galera_mysql_port }}"
+        host: "{{ hostvars[groups['galera'] | first].ansible_host }}"
+        delay: 10
+        timeout: 120
+      delegate_to: "{{ groups['galera'] | first }}"
+      run_once: true
+
+    - name: Sprawdz status pierwszego wezla
+      shell: |
+        mysql -u root -p{{ galera_root_password }} -e "SHOW GLOBAL STATUS LIKE 'wsrep_local_state_comment'" | grep -o 'Synced\|Donor\|Joined' || echo "NotReady"
+      register: first_node_status
+      until: first_node_status.stdout == "Synced"
+      retries: 30
+      delay: 10
+      delegate_to: "{{ groups['galera'] | first }}"
+      run_once: true
+      no_log: true
+
+  when:
+    - cluster_size_check.stdout | default('0') | int == 0
+    - galera_bootstrap | default(false) or (inventory_hostname == groups['galera'] | first)
+
+# -----------------------------------------------------------------------------
+# Dolaczanie pozostalych wezlow (sekwencyjnie)
+# -----------------------------------------------------------------------------
+
+- name: Uruchom pozostale wezly (sekwencyjnie)
+  systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+  when:
+    - inventory_hostname != groups['galera'] | first
+    - cluster_size_check.stdout | default('0') | int == 0
+  throttle: 1  # Jeden wezel na raz
+
+- name: Poczekaj na synchronizacje wezla
+  shell: |
+    mysql -u root -p{{ galera_root_password }} -e "SHOW GLOBAL STATUS LIKE 'wsrep_local_state_comment'" | grep -o 'Synced' || echo "NotSynced"
+  register: node_sync_status
+  until: node_sync_status.stdout == "Synced"
+  retries: 60
+  delay: 10
+  changed_when: false
+  no_log: true
+  when: inventory_hostname != groups['galera'] | first
+
+# -----------------------------------------------------------------------------
+# Weryfikacja klastra
+# -----------------------------------------------------------------------------
+
+- name: Sprawdz koncowy rozmiar klastra
+  shell: |
+    mysql -u root -p{{ galera_root_password }} -e "SHOW GLOBAL STATUS LIKE 'wsrep_cluster_size'" | grep -o '[0-9]*$'
+  register: final_cluster_size
+  changed_when: false
+  run_once: true
+  delegate_to: "{{ groups['galera'] | first }}"
+  no_log: true
+
+- name: Weryfikacja - klaster ma wszystkie wezly
+  assert:
+    that:
+      - final_cluster_size.stdout | int == groups['galera'] | length
+    fail_msg: "Klaster ma {{ final_cluster_size.stdout }} wezlow, oczekiwano {{ groups['galera'] | length }}"
+    success_msg: "Klaster Galera skonfigurowany poprawnie z {{ final_cluster_size.stdout }} wezlami"
+  run_once: true
+
+- name: Wyswietl status klastra
+  shell: |
+    mysql -u root -p{{ galera_root_password }} -e "
+    SELECT
+      VARIABLE_NAME,
+      VARIABLE_VALUE
+    FROM information_schema.GLOBAL_STATUS
+    WHERE VARIABLE_NAME IN (
+      'wsrep_cluster_size',
+      'wsrep_cluster_status',
+      'wsrep_ready',
+      'wsrep_connected',
+      'wsrep_local_state_comment'
+    )"
+  register: cluster_status
+  changed_when: false
+  no_log: true
+
+- name: Pokaz status klastra
+  debug:
+    msg: "{{ cluster_status.stdout_lines }}"

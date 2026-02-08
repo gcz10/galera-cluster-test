@@ -1,0 +1,184 @@
+---
+# =============================================================================
+# Rola: mariadb - Instalacja MariaDB Server na Rocky Linux 9
+# =============================================================================
+
+- name: Dodaj oficjalne repozytorium MariaDB
+  copy:
+    dest: /etc/yum.repos.d/MariaDB.repo
+    content: |
+      [mariadb]
+      name = MariaDB {{ mariadb_version }}
+      baseurl = https://mirror.mariadb.org/yum/{{ mariadb_version }}/rhel/$releasever/$basearch
+      gpgkey = https://supplychain.mariadb.com/MariaDB-Server-GPG-KEY
+      gpgcheck = 1
+      enabled = 1
+      module_hotfixes = 1
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Zainstaluj MariaDB Server i Galera
+  dnf:
+    name:
+      - MariaDB-server
+      - MariaDB-client
+      - MariaDB-backup
+      - galera-4
+      - socat
+      - rsync
+    state: present
+    update_cache: yes
+
+- name: Utworz katalog logow MariaDB
+  file:
+    path: "{{ mariadb_logdir }}"
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: '0755'
+
+- name: Utworz katalog dla pid
+  file:
+    path: /var/run/mariadb
+    state: directory
+    owner: mysql
+    group: mysql
+    mode: '0755'
+
+- name: Skonfiguruj podstawowy my.cnf
+  template:
+    src: my.cnf.j2
+    dest: /etc/my.cnf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart mariadb
+
+- name: Utworz katalog my.cnf.d
+  file:
+    path: /etc/my.cnf.d
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Wlacz i uruchom MariaDB (pierwszy start bez Galera)
+  systemd:
+    name: mariadb
+    state: started
+    enabled: yes
+  register: mariadb_first_start
+  # Tylko jesli to pierwszy start (bez konfiguracji Galera)
+  when: not galera_configured | default(false)
+
+- name: Poczekaj na uruchomienie MariaDB
+  wait_for:
+    port: "{{ galera_mysql_port | default(3306) }}"
+    host: 127.0.0.1
+    delay: 5
+    timeout: 60
+  when: mariadb_first_start is changed
+
+- name: Sprawdz czy root password jest ustawiony
+  shell: |
+    mysql -u root -e "SELECT 1" 2>/dev/null
+  register: root_password_check
+  failed_when: false
+  changed_when: false
+  no_log: true
+
+- name: Ustaw haslo root (jesli nie ustawione)
+  mysql_user:
+    name: root
+    password: "{{ galera_root_password }}"
+    host_all: yes
+    state: present
+    login_unix_socket: "{{ mariadb_socket }}"
+  when: root_password_check.rc == 0
+  no_log: true
+
+- name: Utworz plik .my.cnf dla root
+  template:
+    src: root_my.cnf.j2
+    dest: /root/.my.cnf
+    owner: root
+    group: root
+    mode: '0600'
+  no_log: true
+
+- name: Usun anonimowych uzytkownikow
+  mysql_user:
+    name: ''
+    host_all: yes
+    state: absent
+    login_user: root
+    login_password: "{{ galera_root_password }}"
+
+- name: Usun testowa baze danych
+  mysql_db:
+    name: test
+    state: absent
+    login_user: root
+    login_password: "{{ galera_root_password }}"
+
+- name: Utworz uzytkownika backup
+  mysql_user:
+    name: "{{ galera_backup_user }}"
+    password: "{{ galera_backup_password }}"
+    priv: "*.*:RELOAD,LOCK TABLES,REPLICATION CLIENT,CREATE TABLESPACE,PROCESS,SUPER,CREATE,INSERT,SELECT"
+    host: "localhost"
+    state: present
+    login_user: root
+    login_password: "{{ galera_root_password }}"
+  no_log: true
+
+- name: Utworz uzytkownika monitor
+  mysql_user:
+    name: "{{ galera_monitor_user }}"
+    password: "{{ galera_monitor_password }}"
+    priv: "*.*:PROCESS,REPLICATION CLIENT,SELECT"
+    host: "%"
+    state: present
+    login_user: root
+    login_password: "{{ galera_root_password }}"
+  no_log: true
+
+- name: Utworz uzytkownika haproxy_check
+  mysql_user:
+    name: "{{ haproxy_check_user }}"
+    password: "{{ haproxy_check_password }}"
+    priv: "*.*:PROCESS,REPLICATION CLIENT"
+    host: "%"
+    state: present
+    login_user: root
+    login_password: "{{ galera_root_password }}"
+  no_log: true
+
+- name: Utworz uzytkownika proxysql_monitor
+  mysql_user:
+    name: "{{ proxysql_monitor_user }}"
+    password: "{{ proxysql_monitor_password }}"
+    priv: "*.*:PROCESS,REPLICATION CLIENT,SELECT"
+    host: "%"
+    state: present
+    login_user: root
+    login_password: "{{ galera_root_password }}"
+  no_log: true
+
+- name: Utworz uzytkownikow aplikacji
+  mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.password }}"
+    priv: "{{ item.priv }}"
+    host: "{{ item.host | default('%') }}"
+    state: present
+    login_user: root
+    login_password: "{{ galera_root_password }}"
+  loop: "{{ app_users | default([]) }}"
+  no_log: true
+
+- name: Flush privileges
+  command: mysql -u root -p{{ galera_root_password }} -e "FLUSH PRIVILEGES"
+  changed_when: false
+  no_log: true

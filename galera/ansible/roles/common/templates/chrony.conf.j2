@@ -1,0 +1,18 @@
+# Chrony configuration for Galera cluster
+# Managed by Ansible
+
+{% for server in ntp_servers | default(['0.pool.ntp.org', '1.pool.ntp.org']) %}
+server {{ server }} iburst
+{% endfor %}
+
+# Record the rate at which the system clock gains/losses time.
+driftfile /var/lib/chrony/drift
+
+# Allow the system clock to be stepped in the first three updates
+makestep 1.0 3
+
+# Enable kernel synchronization of the real-time clock (RTC).
+rtcsync
+
+# Specify directory for log files.
+logdir /var/log/chrony

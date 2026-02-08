@@ -1,0 +1,189 @@
+---
+# =============================================================================
+# Rola: firewall - Konfiguracja firewalld dla Galera cluster
+# =============================================================================
+
+- name: Zainstaluj firewalld
+  dnf:
+    name: firewalld
+    state: present
+
+- name: Wlacz i uruchom firewalld
+  systemd:
+    name: firewalld
+    state: started
+    enabled: yes
+
+# -----------------------------------------------------------------------------
+# Strefa dla klastra Galera (komunikacja miedzy wezlami)
+# -----------------------------------------------------------------------------
+
+- name: Utworz zone galera-cluster
+  firewalld:
+    zone: galera-cluster
+    state: present
+    permanent: yes
+  notify: reload firewalld
+
+- name: Dodaj zaufane adresy IP wezlow Galera do strefy
+  firewalld:
+    zone: galera-cluster
+    source: "{{ hostvars[item].ansible_host }}/32"
+    state: enabled
+    permanent: yes
+  loop: "{{ groups['galera'] }}"
+  when: "'galera' in group_names"
+  notify: reload firewalld
+
+# -----------------------------------------------------------------------------
+# Porty MySQL (klienci)
+# -----------------------------------------------------------------------------
+
+- name: Otworz port MySQL (3306) dla wszystkich
+  firewalld:
+    port: "{{ galera_mysql_port | default(3306) }}/tcp"
+    zone: public
+    state: enabled
+    permanent: yes
+  when: "'galera' in group_names or 'haproxy' in group_names or 'proxysql' in group_names"
+  notify: reload firewalld
+
+# -----------------------------------------------------------------------------
+# Porty Galera (replikacja - tylko miedzy wezlami)
+# -----------------------------------------------------------------------------
+
+- name: Otworz port Galera replication (4567/tcp) w strefie galera-cluster
+  firewalld:
+    port: "{{ galera_cluster_port | default(4567) }}/tcp"
+    zone: galera-cluster
+    state: enabled
+    permanent: yes
+  when: "'galera' in group_names"
+  notify: reload firewalld
+
+- name: Otworz port Galera replication (4567/udp) w strefie galera-cluster
+  firewalld:
+    port: "{{ galera_cluster_port | default(4567) }}/udp"
+    zone: galera-cluster
+    state: enabled
+    permanent: yes
+  when: "'galera' in group_names"
+  notify: reload firewalld
+
+- name: Otworz port IST (4568) w strefie galera-cluster
+  firewalld:
+    port: "{{ galera_ist_port | default(4568) }}/tcp"
+    zone: galera-cluster
+    state: enabled
+    permanent: yes
+  when: "'galera' in group_names"
+  notify: reload firewalld
+
+- name: Otworz port SST (4444) w strefie galera-cluster
+  firewalld:
+    port: "{{ galera_sst_port | default(4444) }}/tcp"
+    zone: galera-cluster
+    state: enabled
+    permanent: yes
+  when: "'galera' in group_names"
+  notify: reload firewalld
+
+# -----------------------------------------------------------------------------
+# Porty dla health check (xinetd - HAProxy)
+# -----------------------------------------------------------------------------
+
+- name: Otworz port health check (9200) dla HAProxy
+  firewalld:
+    port: 9200/tcp
+    zone: public
+    state: enabled
+    permanent: yes
+  when: "'galera' in group_names"
+  notify: reload firewalld
+
+# -----------------------------------------------------------------------------
+# Porty dla mysqld_exporter (Prometheus)
+# -----------------------------------------------------------------------------
+
+- name: Otworz port mysqld_exporter (9104) dla Prometheus
+  firewalld:
+    port: "{{ mysqld_exporter_port | default(9104) }}/tcp"
+    zone: public
+    state: enabled
+    permanent: yes
+  when: "'galera' in group_names"
+  notify: reload firewalld
+
+# -----------------------------------------------------------------------------
+# Porty HAProxy
+# -----------------------------------------------------------------------------
+
+- name: Otworz port HAProxy stats (8404)
+  firewalld:
+    port: "{{ haproxy_stats_port | default(8404) }}/tcp"
+    zone: public
+    state: enabled
+    permanent: yes
+  when: "'haproxy' in group_names"
+  notify: reload firewalld
+
+- name: Otworz port HAProxy read (3307)
+  firewalld:
+    port: "{{ haproxy_read_port | default(3307) }}/tcp"
+    zone: public
+    state: enabled
+    permanent: yes
+  when: "'haproxy' in group_names"
+  notify: reload firewalld
+
+# -----------------------------------------------------------------------------
+# Porty ProxySQL
+# -----------------------------------------------------------------------------
+
+- name: Otworz port ProxySQL (6033)
+  firewalld:
+    port: "{{ proxysql_port | default(6033) }}/tcp"
+    zone: public
+    state: enabled
+    permanent: yes
+  when: "'proxysql' in group_names"
+  notify: reload firewalld
+
+- name: Otworz port ProxySQL admin (6032)
+  firewalld:
+    port: "{{ proxysql_admin_port | default(6032) }}/tcp"
+    zone: public
+    state: enabled
+    permanent: yes
+  when: "'proxysql' in group_names"
+  notify: reload firewalld
+
+# -----------------------------------------------------------------------------
+# Porty monitoring (Prometheus/Grafana)
+# -----------------------------------------------------------------------------
+
+- name: Otworz port Prometheus (9090)
+  firewalld:
+    port: "{{ prometheus_port | default(9090) }}/tcp"
+    zone: public
+    state: enabled
+    permanent: yes
+  when: "'monitoring' in group_names"
+  notify: reload firewalld
+
+- name: Otworz port Grafana (3000)
+  firewalld:
+    port: "{{ grafana_port | default(3000) }}/tcp"
+    zone: public
+    state: enabled
+    permanent: yes
+  when: "'monitoring' in group_names"
+  notify: reload firewalld
+
+# -----------------------------------------------------------------------------
+# Reload firewalld
+# -----------------------------------------------------------------------------
+
+- name: Reload firewalld (ensure all rules applied)
+  command: firewall-cmd --reload
+  changed_when: false

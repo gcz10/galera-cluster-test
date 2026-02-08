@@ -1,0 +1,34 @@
+---
+# =============================================================================
+# Domyslne zmienne dla roli proxysql
+# =============================================================================
+
+# Porty
+proxysql_port: 6033
+proxysql_admin_port: 6032
+
+# Admin credentials
+proxysql_admin_user: "admin"
+proxysql_admin_password: "admin"
+
+# Hostgroups
+proxysql_writer_hostgroup: 10
+proxysql_backup_writer_hostgroup: 11
+proxysql_reader_hostgroup: 12
+proxysql_offline_hostgroup: 13
+
+# Galera settings
+proxysql_max_writers: 1
+proxysql_writer_is_also_reader: 1
+proxysql_max_transactions_behind: 30
+
+# Connection settings
+proxysql_max_connections: 500
+proxysql_connect_timeout_server: 3000
+proxysql_connect_retries_on_failure: 5
+
+# Monitor settings
+proxysql_monitor_enabled: true
+proxysql_monitor_interval: 2000
+proxysql_monitor_connect_timeout: 600
+proxysql_monitor_ping_timeout: 600

@@ -1,0 +1,20 @@
+---
+- name: restart galera node
+  systemd:
+    name: mariadb
+    state: restarted
+  # Galera wymaga rolling restart - jeden wezel na raz
+  throttle: 1
+  # Poczekaj na synchronizacje przed restartem nastepnego
+  register: restart_result
+
+- name: wait for node sync after restart
+  shell: |
+    mysql -u root -p{{ galera_root_password }} -e "SHOW GLOBAL STATUS LIKE 'wsrep_local_state'" | grep -o '4' || echo "0"
+  register: node_state
+  until: node_state.stdout == "4"
+  retries: 30
+  delay: 10
+  changed_when: false
+  no_log: true
+  listen: restart galera node

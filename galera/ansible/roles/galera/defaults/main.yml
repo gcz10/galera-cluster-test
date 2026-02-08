@@ -1,0 +1,39 @@
+---
+# =============================================================================
+# Domyslne zmienne dla roli galera
+# =============================================================================
+
+# Nazwa klastra
+galera_cluster_name: "galera_cluster"
+
+# Sciezka do biblioteki Galera
+galera_provider: "/usr/lib64/galera-4/libgalera_smm.so"
+
+# Metoda SST (State Snapshot Transfer)
+# Opcje: mariabackup, rsync, mysqldump
+galera_sst_method: "mariabackup"
+
+# Porty
+galera_mysql_port: 3306
+galera_cluster_port: 4567
+galera_ist_port: 4568
+galera_sst_port: 4444
+
+# Wydajnosc
+galera_slave_threads: 8
+galera_gcache_size: "2G"
+galera_gcache_page_size: "128M"
+
+# Flow control
+galera_fc_limit: 100
+galera_fc_factor: 1.0
+
+# Timeouty EVS
+galera_evs_keepalive_period: "PT1S"
+galera_evs_inactive_check_period: "PT0.5S"
+galera_evs_inactive_timeout: "PT15S"
+galera_evs_suspect_timeout: "PT5S"
+galera_evs_install_timeout: "PT7.5S"
+
+# SSL (domyslnie wylaczone)
+galera_ssl_enabled: false

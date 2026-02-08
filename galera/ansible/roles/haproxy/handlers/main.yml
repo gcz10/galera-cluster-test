@@ -1,0 +1,15 @@
+---
+- name: restart haproxy
+  systemd:
+    name: haproxy
+    state: restarted
+
+- name: reload haproxy
+  systemd:
+    name: haproxy
+    state: reloaded
+
+- name: restart xinetd
+  systemd:
+    name: xinetd
+    state: restarted

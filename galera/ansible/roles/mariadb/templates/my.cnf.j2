@@ -1,0 +1,62 @@
+# MariaDB configuration
+# Managed by Ansible - DO NOT EDIT MANUALLY
+
+[client]
+port = {{ galera_mysql_port | default(3306) }}
+socket = {{ mariadb_socket }}
+
+[mysqld]
+# Basic Settings
+datadir = {{ mariadb_datadir }}
+socket = {{ mariadb_socket }}
+port = {{ galera_mysql_port | default(3306) }}
+pid-file = {{ mariadb_pid_file }}
+user = mysql
+
+# Character Set
+character-set-server = utf8mb4
+collation-server = utf8mb4_general_ci
+
+# Connections
+max_connections = {{ mysql_max_connections | default(500) }}
+max_allowed_packet = {{ mysql_max_allowed_packet | default('256M') }}
+thread_cache_size = {{ mysql_thread_cache_size | default(16) }}
+
+# Query Cache - DISABLED for Galera
+query_cache_type = 0
+query_cache_size = 0
+
+# Binary Log Format - MUST BE ROW for Galera
+binlog_format = ROW
+log_bin = {{ mariadb_logdir }}/mariadb-bin
+expire_logs_days = 7
+
+# Default Storage Engine
+default_storage_engine = InnoDB
+
+# InnoDB Settings
+{% set buffer_pool_size = ((ansible_memtotal_mb | int) * (innodb_buffer_pool_ratio | default(0.7))) | int %}
+innodb_buffer_pool_size = {{ buffer_pool_size }}M
+innodb_log_file_size = {{ innodb_log_file_size | default('512M') }}
+innodb_flush_log_at_trx_commit = {{ innodb_flush_log_at_trx_commit | default(2) }}
+innodb_flush_method = {{ innodb_flush_method | default('O_DIRECT') }}
+innodb_file_per_table = 1
+innodb_autoinc_lock_mode = 2
+
+# Temp Tables
+tmp_table_size = 256M
+max_heap_table_size = 256M
+
+# Logging
+log_error = {{ mariadb_logdir }}/mariadb.log
+{% if mariadb_slow_query_log | default(true) %}
+slow_query_log = 1
+slow_query_log_file = {{ mariadb_logdir }}/slow.log
+long_query_time = {{ mariadb_slow_query_time | default(2) }}
+{% endif %}
+
+# Performance Schema
+performance_schema = ON
+
+# Include additional config files
+!includedir /etc/my.cnf.d/

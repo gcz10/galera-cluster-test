@@ -1,0 +1,44 @@
+---
+# =============================================================================
+# MariaDB Galera Cluster - Main Playbook
+# =============================================================================
+# Usage:
+#   ansible-playbook site.yml                    # Full deploy
+#   ansible-playbook site.yml --tags galera      # Only Galera config
+#   ansible-playbook site.yml --tags bootstrap   # Only bootstrap
+# =============================================================================
+
+# Phase 1: Base system configuration on all nodes
+- name: Configure base system
+  hosts: galera
+  tags: [common]
+  roles:
+    - common
+
+# Phase 2: Firewall configuration
+- name: Configure firewall
+  hosts: galera
+  tags: [firewall]
+  roles:
+    - firewall
+
+# Phase 3: Install MariaDB (without starting in Galera mode)
+- name: Install and configure MariaDB
+  hosts: galera
+  tags: [mariadb]
+  roles:
+    - mariadb
+
+# Phase 4: Configure Galera and bootstrap cluster
+- name: Configure and bootstrap Galera cluster
+  hosts: galera
+  tags: [galera, bootstrap]
+  roles:
+    - galera
+
+# Phase 5: Prometheus mysqld_exporter
+- name: Deploy Prometheus mysqld_exporter
+  hosts: galera
+  tags: [monitoring, exporter]
+  roles:
+    - prometheus-exporter

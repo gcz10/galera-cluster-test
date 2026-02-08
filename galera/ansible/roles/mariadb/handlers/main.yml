@@ -1,0 +1,7 @@
+---
+- name: restart mariadb
+  systemd:
+    name: mariadb
+    state: restarted
+  # Nie restartuj jesli Galera jest skonfigurowana - wymaga specjalnej procedury
+  when: not galera_configured | default(false)

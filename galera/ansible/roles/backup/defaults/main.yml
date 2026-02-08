@@ -1,0 +1,19 @@
+---
+# =============================================================================
+# Domyslne zmienne dla roli backup
+# =============================================================================
+
+backup_dir: "/var/backups/mariadb"
+backup_retention_days: 30
+backup_compress: true
+backup_compress_threads: 4
+
+# Harmonogram cron
+backup_full_schedule: "0 2 * * 0"      # Niedziela 2:00 AM
+backup_incr_schedule: "0 */4 * * 1-6"  # Co 4h pon-sob
+
+# Opcjonalne: zdalny backup
+backup_remote_enabled: false
+# backup_remote_host: "backup.example.com"
+# backup_remote_path: "/backups/galera"
+# backup_remote_user: "backup"

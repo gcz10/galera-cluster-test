@@ -1,0 +1,28 @@
+---
+# =============================================================================
+# Domyslne zmienne dla roli haproxy
+# =============================================================================
+
+# Porty
+haproxy_write_port: 3306
+haproxy_read_port: 3307
+haproxy_stats_port: 8404
+haproxy_check_port: 9200
+
+# Stats
+haproxy_stats_user: "admin"
+haproxy_stats_password: "ZMIEN_STATS_PASSWORD"
+
+# Timeouty
+haproxy_connect_timeout: "5s"
+haproxy_client_timeout: "30s"
+haproxy_server_timeout: "30s"
+
+# Health check
+haproxy_check_interval: "2s"
+haproxy_check_fall: 3
+haproxy_check_rise: 2
+
+# Max connections
+haproxy_maxconn: 4096
+haproxy_server_maxconn: 500

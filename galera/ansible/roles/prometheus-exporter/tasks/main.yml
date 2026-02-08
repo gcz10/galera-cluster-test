@@ -1,0 +1,82 @@
+---
+# =============================================================================
+# Rola: prometheus-exporter - mysqld_exporter dla monitorowania Galera
+# =============================================================================
+
+- name: Utworz uzytkownika systemowego exporter
+  user:
+    name: "{{ mysqld_exporter_user }}"
+    system: yes
+    shell: /sbin/nologin
+    create_home: no
+
+- name: Pobierz mysqld_exporter
+  get_url:
+    url: "{{ mysqld_exporter_download_url }}"
+    dest: /tmp/mysqld_exporter.tar.gz
+    mode: '0644'
+
+- name: Rozpakuj mysqld_exporter
+  unarchive:
+    src: /tmp/mysqld_exporter.tar.gz
+    dest: /tmp/
+    remote_src: yes
+
+- name: Skopiuj mysqld_exporter do /usr/local/bin
+  copy:
+    src: "/tmp/mysqld_exporter-{{ mysqld_exporter_version }}.linux-amd64/mysqld_exporter"
+    dest: /usr/local/bin/mysqld_exporter
+    owner: root
+    group: root
+    mode: '0755'
+    remote_src: yes
+
+- name: Utworz katalog konfiguracji exporter
+  file:
+    path: /etc/mysqld_exporter
+    state: directory
+    owner: "{{ mysqld_exporter_user }}"
+    group: "{{ mysqld_exporter_user }}"
+    mode: '0750'
+
+- name: Utworz plik konfiguracji MySQL dla exporter
+  template:
+    src: my.cnf.j2
+    dest: /etc/mysqld_exporter/.my.cnf
+    owner: "{{ mysqld_exporter_user }}"
+    group: "{{ mysqld_exporter_user }}"
+    mode: '0600'
+  no_log: true
+
+- name: Utworz plik systemd dla mysqld_exporter
+  template:
+    src: mysqld_exporter.service.j2
+    dest: /etc/systemd/system/mysqld_exporter.service
+    owner: root
+    group: root
+    mode: '0644'
+  notify:
+    - reload systemd
+    - restart mysqld_exporter
+
+- name: Wlacz i uruchom mysqld_exporter
+  systemd:
+    name: mysqld_exporter
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Sprawdz czy exporter dziala
+  wait_for:
+    port: "{{ mysqld_exporter_port }}"
+    host: 127.0.0.1
+    delay: 3
+    timeout: 30
+
+- name: Posprzataj pliki tymczasowe
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /tmp/mysqld_exporter.tar.gz
+    - "/tmp/mysqld_exporter-{{ mysqld_exporter_version }}.linux-amd64"

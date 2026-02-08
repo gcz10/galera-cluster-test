@@ -1,0 +1,55 @@
+#!/bin/bash
+# =============================================================================
+# Galera Full Backup Script
+# Managed by Ansible - DO NOT EDIT MANUALLY
+# =============================================================================
+
+set -e
+
+BACKUP_DIR="{{ backup_dir }}"
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_PATH="${BACKUP_DIR}/full_${DATE}"
+LOG_FILE="/var/log/galera-backup.log"
+
+MYSQL_USER="{{ galera_backup_user }}"
+MYSQL_PASS="{{ galera_backup_password }}"
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting full backup to ${BACKUP_PATH}" >> ${LOG_FILE}
+
+# Utworz katalog backupu
+mkdir -p "${BACKUP_PATH}"
+
+# Wykonaj backup
+{% if backup_compress | default(true) %}
+mariadb-backup --backup \
+    --target-dir="${BACKUP_PATH}" \
+    --user="${MYSQL_USER}" \
+    --password="${MYSQL_PASS}" \
+    --compress \
+    --compress-threads={{ backup_compress_threads | default(4) }} \
+    2>> ${LOG_FILE}
+{% else %}
+mariadb-backup --backup \
+    --target-dir="${BACKUP_PATH}" \
+    --user="${MYSQL_USER}" \
+    --password="${MYSQL_PASS}" \
+    2>> ${LOG_FILE}
+{% endif %}
+
+# Zapisz timestamp ostatniego pelnego backupu
+echo "${BACKUP_PATH}" > "${BACKUP_DIR}/last_full_backup"
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Full backup completed: ${BACKUP_PATH}" >> ${LOG_FILE}
+
+# Oblicz rozmiar
+BACKUP_SIZE=$(du -sh "${BACKUP_PATH}" | awk '{print $1}')
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Backup size: ${BACKUP_SIZE}" >> ${LOG_FILE}
+
+{% if backup_remote_enabled | default(false) %}
+# Synchronizacja do zdalnego serwera
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Syncing to remote server..." >> ${LOG_FILE}
+rsync -avz --progress "${BACKUP_PATH}" {{ backup_remote_user }}@{{ backup_remote_host }}:{{ backup_remote_path }}/ 2>> ${LOG_FILE}
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Remote sync completed" >> ${LOG_FILE}
+{% endif %}
+
+exit 0

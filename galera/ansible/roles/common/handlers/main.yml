@@ -1,0 +1,12 @@
+---
+- name: restart chronyd
+  systemd:
+    name: chronyd
+    state: restarted
+
+- name: enable disable-thp
+  systemd:
+    name: disable-thp
+    enabled: yes
+    state: started
+    daemon_reload: yes

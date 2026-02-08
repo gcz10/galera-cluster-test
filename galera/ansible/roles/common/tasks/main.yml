@@ -1,0 +1,128 @@
+---
+# =============================================================================
+# Rola: common - Bazowa konfiguracja systemu Rocky Linux 9
+# =============================================================================
+
+- name: Ustaw hostname
+  hostname:
+    name: "{{ inventory_hostname }}"
+
+- name: Dodaj wpisy /etc/hosts dla wszystkich wezlow
+  lineinfile:
+    path: /etc/hosts
+    line: "{{ hostvars[item].ansible_host }} {{ item }}"
+    state: present
+  loop: "{{ groups['all'] }}"
+  when: hostvars[item].ansible_host is defined
+
+- name: Ustaw timezone
+  timezone:
+    name: "{{ timezone | default('Europe/Warsaw') }}"
+
+- name: Zainstaluj EPEL repository
+  dnf:
+    name: epel-release
+    state: present
+
+- name: Zainstaluj podstawowe pakiety
+  dnf:
+    name:
+      - chrony
+      - vim
+      - wget
+      - curl
+      - net-tools
+      - bind-utils
+      - telnet
+      - htop
+      - iotop
+      - sysstat
+      - policycoreutils-python-utils
+      - python3-PyMySQL
+      - python3-pip
+    state: present
+    update_cache: yes
+
+- name: Wlacz i uruchom chronyd (NTP)
+  systemd:
+    name: chronyd
+    state: started
+    enabled: yes
+
+- name: Skonfiguruj chrony - dodaj serwery NTP
+  template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    owner: root
+    group: root
+    mode: '0644'
+  notify: restart chronyd
+
+- name: Wylacz SELinux (lub ustaw permissive)
+  selinux:
+    state: permissive
+    policy: targeted
+  register: selinux_result
+
+- name: Informacja o restarcie (jesli SELinux zmieniony)
+  debug:
+    msg: "SELinux zostal zmieniony - moze byc wymagany restart"
+  when: selinux_result.changed
+
+- name: Ustaw limity systemowe dla MySQL
+  copy:
+    dest: /etc/security/limits.d/99-mysql.conf
+    content: |
+      mysql soft nofile 65535
+      mysql hard nofile 65535
+      mysql soft nproc 65535
+      mysql hard nproc 65535
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Ustaw parametry sysctl dla wydajnosci
+  sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_file: /etc/sysctl.d/99-galera.conf
+    reload: yes
+  loop:
+    - { name: 'net.core.somaxconn', value: '65535' }
+    - { name: 'net.core.netdev_max_backlog', value: '65535' }
+    - { name: 'net.ipv4.tcp_max_syn_backlog', value: '65535' }
+    - { name: 'net.ipv4.tcp_fin_timeout', value: '30' }
+    - { name: 'net.ipv4.tcp_keepalive_time', value: '300' }
+    - { name: 'net.ipv4.tcp_keepalive_probes', value: '5' }
+    - { name: 'net.ipv4.tcp_keepalive_intvl', value: '15' }
+    - { name: 'vm.swappiness', value: '10' }
+
+- name: Wylacz transparent hugepages (lepsza wydajnosc MySQL)
+  copy:
+    dest: /etc/systemd/system/disable-thp.service
+    content: |
+      [Unit]
+      Description=Disable Transparent Huge Pages (THP)
+      DefaultDependencies=no
+      After=sysinit.target local-fs.target
+      Before=mysqld.service mariadb.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/bin/sh -c 'echo never > /sys/kernel/mm/transparent_hugepage/enabled'
+      ExecStart=/bin/sh -c 'echo never > /sys/kernel/mm/transparent_hugepage/defrag'
+
+      [Install]
+      WantedBy=basic.target
+    owner: root
+    group: root
+    mode: '0644'
+  notify: enable disable-thp
+
+- name: Upewnij sie ze disable-thp jest wlaczony
+  systemd:
+    name: disable-thp
+    enabled: yes
+    state: started
+    daemon_reload: yes

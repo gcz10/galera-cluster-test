@@ -1,0 +1,27 @@
+---
+# =============================================================================
+# Domyslne zmienne dla roli mariadb
+# =============================================================================
+
+mariadb_version: "11.4"
+
+# Sciezki
+mariadb_datadir: "/var/lib/mysql"
+mariadb_logdir: "/var/log/mariadb"
+mariadb_socket: "/var/lib/mysql/mysql.sock"
+mariadb_pid_file: "/var/run/mariadb/mariadb.pid"
+
+# Podstawowa konfiguracja
+mysql_max_connections: 500
+mysql_max_allowed_packet: "256M"
+mysql_thread_cache_size: 16
+
+# InnoDB
+innodb_buffer_pool_ratio: 0.7
+innodb_log_file_size: "512M"
+innodb_flush_log_at_trx_commit: 2
+innodb_flush_method: "O_DIRECT"
+
+# Logi
+mariadb_slow_query_log: true
+mariadb_slow_query_time: 2
