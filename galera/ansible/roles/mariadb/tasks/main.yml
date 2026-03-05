@@ -170,7 +170,7 @@
   mysql_user:
     name: "{{ item.name }}"
     password: "{{ item.password }}"
-    priv: "{{ item.priv }}"
+    priv: "{{ item.priv | default('*.*:ALL PRIVILEGES') }}"
     host: "{{ item.host | default('%') }}"
     state: present
     login_user: root

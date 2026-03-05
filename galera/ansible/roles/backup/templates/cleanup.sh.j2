@@ -1,0 +1,44 @@
+#!/bin/bash
+# =============================================================================
+# Galera Backup Cleanup Script
+# Managed by Ansible - DO NOT EDIT MANUALLY
+# =============================================================================
+
+set -e
+
+BACKUP_DIR="{{ backup_dir }}"
+RETENTION_DAYS="{{ backup_retention_days }}"
+LOG_FILE="/var/log/galera-backup.log"
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting backup cleanup (retention: ${RETENTION_DAYS} days)" >> ${LOG_FILE}
+
+# Count backups before cleanup
+BEFORE_COUNT=$(find "${BACKUP_DIR}" -maxdepth 1 -type d \( -name "full_*" -o -name "incr_*" \) | wc -l)
+
+# Find and remove old backups
+REMOVED=0
+while IFS= read -r dir; do
+    [ -z "${dir}" ] && continue
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Removing old backup: ${dir}" >> ${LOG_FILE}
+    rm -rf "${dir}"
+    REMOVED=$((REMOVED + 1))
+done < <(find "${BACKUP_DIR}" -maxdepth 1 -type d \( -name "full_*" -o -name "incr_*" \) -mtime +${RETENTION_DAYS})
+
+# Clean up last_full_backup reference if it points to removed directory
+if [ -f "${BACKUP_DIR}/last_full_backup" ]; then
+    LAST_FULL=$(cat "${BACKUP_DIR}/last_full_backup")
+    if [ ! -d "${LAST_FULL}" ]; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARNING: last_full_backup points to removed directory, clearing reference" >> ${LOG_FILE}
+        rm -f "${BACKUP_DIR}/last_full_backup"
+    fi
+fi
+
+AFTER_COUNT=$(find "${BACKUP_DIR}" -maxdepth 1 -type d \( -name "full_*" -o -name "incr_*" \) | wc -l)
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Cleanup completed: removed ${REMOVED} backups (${BEFORE_COUNT} -> ${AFTER_COUNT})" >> ${LOG_FILE}
+
+# Show disk usage
+DISK_USAGE=$(du -sh "${BACKUP_DIR}" 2>/dev/null | awk '{print $1}')
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Total backup disk usage: ${DISK_USAGE}" >> ${LOG_FILE}
+
+exit 0

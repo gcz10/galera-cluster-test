@@ -1,0 +1,120 @@
+#!/bin/bash
+# =============================================================================
+# Galera Restore Script
+# Managed by Ansible - DO NOT EDIT MANUALLY
+# =============================================================================
+# Usage:
+#   galera-restore.sh <full_backup_dir> [incr_dir1 incr_dir2 ...]
+#
+# Examples:
+#   galera-restore.sh /var/backups/mariadb/full_20240101_020000
+#   galera-restore.sh /var/backups/mariadb/full_20240101_020000 /var/backups/mariadb/incr_20240101_060000
+# =============================================================================
+
+set -e
+
+LOG_FILE="/var/log/galera-backup.log"
+MYSQL_DATADIR="{{ mariadb_datadir | default('/var/lib/mysql') }}"
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <full_backup_dir> [incr_dir1 incr_dir2 ...]"
+    echo ""
+    echo "WARNING: This will stop MariaDB and replace all data!"
+    exit 1
+fi
+
+FULL_BACKUP="$1"
+shift
+INCREMENTAL_DIRS="$@"
+
+if [ ! -d "${FULL_BACKUP}" ]; then
+    echo "ERROR: Full backup directory ${FULL_BACKUP} does not exist."
+    exit 1
+fi
+
+echo ""
+echo "=========================================="
+echo "  MariaDB Galera Restore"
+echo "=========================================="
+echo "Full backup:  ${FULL_BACKUP}"
+for incr in ${INCREMENTAL_DIRS}; do
+    echo "Incremental:  ${incr}"
+done
+echo "Data dir:     ${MYSQL_DATADIR}"
+echo ""
+echo "WARNING: This will STOP MariaDB and REPLACE all data!"
+echo "Press Ctrl+C to cancel, or Enter to continue..."
+read -r
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting restore from ${FULL_BACKUP}" >> ${LOG_FILE}
+
+# Prepare full backup
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Preparing full backup..." >> ${LOG_FILE}
+{% if backup_compress | default(true) %}
+mariadb-backup --prepare \
+    --decompress \
+    --target-dir="${FULL_BACKUP}" \
+    2>> ${LOG_FILE}
+{% endif %}
+
+mariadb-backup --prepare \
+    --target-dir="${FULL_BACKUP}" \
+    2>> ${LOG_FILE}
+
+# Apply incremental backups
+for INCR_DIR in ${INCREMENTAL_DIRS}; do
+    if [ ! -d "${INCR_DIR}" ]; then
+        echo "ERROR: Incremental backup directory ${INCR_DIR} does not exist."
+        exit 1
+    fi
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Applying incremental: ${INCR_DIR}" >> ${LOG_FILE}
+{% if backup_compress | default(true) %}
+    mariadb-backup --prepare \
+        --decompress \
+        --target-dir="${FULL_BACKUP}" \
+        --incremental-dir="${INCR_DIR}" \
+        2>> ${LOG_FILE}
+{% endif %}
+    mariadb-backup --prepare \
+        --target-dir="${FULL_BACKUP}" \
+        --incremental-dir="${INCR_DIR}" \
+        2>> ${LOG_FILE}
+done
+
+# Final prepare
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Final prepare..." >> ${LOG_FILE}
+mariadb-backup --prepare \
+    --target-dir="${FULL_BACKUP}" \
+    2>> ${LOG_FILE}
+
+# Stop MariaDB
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Stopping MariaDB..." >> ${LOG_FILE}
+systemctl stop mariadb
+
+# Move old data
+BACKUP_OLD="${MYSQL_DATADIR}.old.$(date +%Y%m%d_%H%M%S)"
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Moving old datadir to ${BACKUP_OLD}" >> ${LOG_FILE}
+mv "${MYSQL_DATADIR}" "${BACKUP_OLD}"
+
+# Copy back
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restoring data..." >> ${LOG_FILE}
+mariadb-backup --copy-back \
+    --target-dir="${FULL_BACKUP}" \
+    --datadir="${MYSQL_DATADIR}" \
+    2>> ${LOG_FILE}
+
+# Fix permissions
+chown -R mysql:mysql "${MYSQL_DATADIR}"
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Restore completed. Start MariaDB manually:" >> ${LOG_FILE}
+echo ""
+echo "Restore completed!"
+echo ""
+echo "Next steps:"
+echo "  1. Review the restored data"
+echo "  2. Start MariaDB:  systemctl start mariadb"
+echo "  3. If this is a Galera node, bootstrap or join the cluster"
+echo "  4. Old data saved to: ${BACKUP_OLD}"
+echo ""
+
+exit 0

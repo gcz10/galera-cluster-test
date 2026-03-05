@@ -203,35 +203,22 @@
   when: pmm_enabled | default(true)
 
 - name: Create PMM data volume
-  ansible.builtin.command: docker volume create {{ pmm_data_volume }}
-  register: pmm_volume_create
-  changed_when: "'already exists' not in pmm_volume_create.stderr"
-  failed_when: false
+  community.docker.docker_volume:
+    name: "{{ pmm_data_volume }}"
+    state: present
   when: pmm_enabled | default(true)
 
-- name: Check if PMM container exists
-  ansible.builtin.command: docker inspect pmm-server
-  register: pmm_container_check
-  changed_when: false
-  failed_when: false
+- name: Run PMM Server container
+  community.docker.docker_container:
+    name: pmm-server
+    image: "{{ pmm_image }}"
+    state: started
+    restart_policy: always
+    ports:
+      - "{{ pmm_port }}:443"
+    volumes:
+      - "{{ pmm_data_volume }}:/srv"
   when: pmm_enabled | default(true)
-
-- name: Start PMM Server container
-  ansible.builtin.command: >
-    docker run -d
-    --name pmm-server
-    --restart always
-    -p {{ pmm_port }}:443
-    -v {{ pmm_data_volume }}:/srv
-    {{ pmm_image }}
-  when: pmm_enabled | default(true) and pmm_container_check.rc != 0
-
-- name: Ensure PMM container is running
-  ansible.builtin.command: docker start pmm-server
-  register: pmm_start
-  changed_when: "'already started' not in pmm_start.stderr"
-  failed_when: false
-  when: pmm_enabled | default(true) and pmm_container_check.rc == 0
 
 # --- Cleanup ---
 - name: Clean up Prometheus temp files

@@ -43,7 +43,14 @@
   roles:
     - prometheus-exporter
 
-# Phase 6: Load Balancers (HAProxy + ProxySQL side by side)
+# Phase 6: HAProxy health check (xinetd) on Galera nodes
+- name: Deploy HAProxy health check on Galera nodes
+  hosts: galera
+  tags: [loadbalancer, haproxy, haproxy-check]
+  roles:
+    - haproxy-check
+
+# Phase 7: Load Balancers (HAProxy + ProxySQL side by side)
 - name: Deploy HAProxy load balancer
   hosts: loadbalancer
   tags: [loadbalancer, haproxy]
@@ -56,7 +63,7 @@
   roles:
     - proxysql
 
-# Phase 7: Prometheus + Grafana monitoring server
+# Phase 8: Prometheus + Grafana monitoring server
 - name: Deploy Prometheus + Grafana monitoring
   hosts: monitoring
   tags: [monitoring, grafana]

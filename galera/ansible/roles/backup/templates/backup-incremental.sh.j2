@@ -1,0 +1,60 @@
+#!/bin/bash
+# =============================================================================
+# Galera Incremental Backup Script
+# Managed by Ansible - DO NOT EDIT MANUALLY
+# =============================================================================
+
+set -e
+
+BACKUP_DIR="{{ backup_dir }}"
+DATE=$(date +%Y%m%d_%H%M%S)
+BACKUP_PATH="${BACKUP_DIR}/incr_${DATE}"
+LOG_FILE="/var/log/galera-backup.log"
+LAST_FULL_FILE="${BACKUP_DIR}/last_full_backup"
+
+MYSQL_USER="{{ galera_backup_user }}"
+MYSQL_PASS="{{ galera_backup_password }}"
+
+# Sprawdz czy istnieje pelny backup
+if [ ! -f "${LAST_FULL_FILE}" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: No full backup found. Run full backup first." >> ${LOG_FILE}
+    exit 1
+fi
+
+LAST_FULL=$(cat "${LAST_FULL_FILE}")
+if [ ! -d "${LAST_FULL}" ]; then
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ERROR: Full backup directory ${LAST_FULL} does not exist." >> ${LOG_FILE}
+    exit 1
+fi
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting incremental backup to ${BACKUP_PATH}" >> ${LOG_FILE}
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Base backup: ${LAST_FULL}" >> ${LOG_FILE}
+
+mkdir -p "${BACKUP_PATH}"
+
+trap 'echo "[$(date "+%Y-%m-%d %H:%M:%S")] Incremental backup FAILED, cleaning up ${BACKUP_PATH}" >> ${LOG_FILE}; rm -rf "${BACKUP_PATH}"' ERR
+
+{% if backup_compress | default(true) %}
+mariadb-backup --backup \
+    --target-dir="${BACKUP_PATH}" \
+    --incremental-basedir="${LAST_FULL}" \
+    --user="${MYSQL_USER}" \
+    --password="${MYSQL_PASS}" \
+    --compress \
+    --compress-threads={{ backup_compress_threads | default(4) }} \
+    2>> ${LOG_FILE}
+{% else %}
+mariadb-backup --backup \
+    --target-dir="${BACKUP_PATH}" \
+    --incremental-basedir="${LAST_FULL}" \
+    --user="${MYSQL_USER}" \
+    --password="${MYSQL_PASS}" \
+    2>> ${LOG_FILE}
+{% endif %}
+
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Incremental backup completed: ${BACKUP_PATH}" >> ${LOG_FILE}
+
+BACKUP_SIZE=$(du -sh "${BACKUP_PATH}" | awk '{print $1}')
+echo "[$(date '+%Y-%m-%d %H:%M:%S')] Backup size: ${BACKUP_SIZE}" >> ${LOG_FILE}
+
+exit 0

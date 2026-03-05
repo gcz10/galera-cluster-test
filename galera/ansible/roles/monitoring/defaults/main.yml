@@ -1,6 +1,6 @@
 ---
 prometheus_version: "3.2.1"
-prometheus_checksum: "sha256:https://github.com/prometheus/prometheus/releases/download/v3.2.1/sha256sums.txt"
+prometheus_checksum: "sha256:a622e3007c9109a7f470e1433cbd29bf392596715cf7eea8b81b37fa9d26b7be"
 prometheus_port: 9090
 grafana_port: 3000
 mysqld_exporter_port: 9104

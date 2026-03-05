@@ -27,6 +27,10 @@ proxysql_max_connections: 500
 proxysql_connect_timeout_server: 3000
 proxysql_connect_retries_on_failure: 5
 
+# Monitor credentials (override via vault in production)
+proxysql_monitor_user: "proxysql_monitor"
+proxysql_monitor_password: ""
+
 # Monitor settings
 proxysql_monitor_enabled: true
 proxysql_monitor_interval: 2000
@@ -36,4 +40,4 @@ proxysql_monitor_ping_timeout: 600
 # Prometheus exporter
 proxysql_exporter_version: "1.1.2"
 proxysql_exporter_port: 42004
-proxysql_exporter_checksum: "sha256:https://github.com/percona/proxysql_exporter/releases/download/v1.1.2/sha256sums.txt"
+proxysql_exporter_checksum: "sha256:06fcd0b6cbb493464ef045a463929bfef32c8ad9db614a6ffe06260ab6795823"

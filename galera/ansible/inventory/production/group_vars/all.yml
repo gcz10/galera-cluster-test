@@ -34,6 +34,7 @@ proxysql_admin_password: "ChangeMe!ProxySQLAdmin2024"
 app_users:
   - name: "sbtest"
     password: "SbTest2024"
+    priv: "*.*:ALL PRIVILEGES"
 
 # =============================================================================
 # Konfiguracja sieci
