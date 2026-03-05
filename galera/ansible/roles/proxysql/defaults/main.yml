@@ -36,3 +36,4 @@ proxysql_monitor_ping_timeout: 600
 # Prometheus exporter
 proxysql_exporter_version: "1.1.2"
 proxysql_exporter_port: 42004
+proxysql_exporter_checksum: "sha256:https://github.com/percona/proxysql_exporter/releases/download/v1.1.2/sha256sums.txt"

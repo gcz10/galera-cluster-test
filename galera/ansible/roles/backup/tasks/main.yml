@@ -83,12 +83,14 @@
   when: inventory_hostname == groups['galera'] | last
 
 - name: Utworz plik logow dla backupu
-  file:
+  ansible.builtin.file:
     path: /var/log/galera-backup.log
     state: touch
     owner: root
     group: root
     mode: '0640'
+    modification_time: preserve
+    access_time: preserve
 
 - name: Konfiguruj logrotate dla logow backupu
   copy:

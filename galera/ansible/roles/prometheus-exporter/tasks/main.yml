@@ -14,6 +14,7 @@
   get_url:
     url: "{{ mysqld_exporter_download_url }}"
     dest: /tmp/mysqld_exporter.tar.gz
+    checksum: "{{ mysqld_exporter_checksum }}"
     mode: '0644'
 
 - name: Rozpakuj mysqld_exporter

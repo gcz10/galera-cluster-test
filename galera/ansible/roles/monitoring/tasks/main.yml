@@ -22,6 +22,7 @@
   ansible.builtin.get_url:
     url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
     dest: /tmp/prometheus.tar.gz
+    checksum: "{{ prometheus_checksum }}"
     mode: "0644"
 
 - name: Extract Prometheus
@@ -176,9 +177,13 @@
 
 # --- PMM Server (Docker) ---
 - name: Add Docker CE repo
-  ansible.builtin.shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
-  args:
-    creates: /etc/yum.repos.d/docker-ce.repo
+  ansible.builtin.yum_repository:
+    name: docker-ce-stable
+    description: Docker CE Stable
+    baseurl: https://download.docker.com/linux/centos/$releasever/$basearch/stable
+    gpgcheck: true
+    gpgkey: https://download.docker.com/linux/centos/gpg
+    enabled: true
   when: pmm_enabled | default(true)
 
 - name: Install Docker

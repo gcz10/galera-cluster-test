@@ -4,6 +4,19 @@
 # Wymaga: community.proxysql collection (ansible-galaxy collection install community.proxysql)
 # =============================================================================
 
+- name: Install firewalld
+  ansible.builtin.dnf:
+    name:
+      - firewalld
+      - python3-firewall
+    state: present
+
+- name: Enable and start firewalld
+  ansible.builtin.systemd:
+    name: firewalld
+    state: started
+    enabled: true
+
 - name: Open firewall ports for ProxySQL
   ansible.posix.firewalld:
     port: "{{ item }}"
@@ -196,6 +209,7 @@
   ansible.builtin.get_url:
     url: "https://github.com/percona/proxysql_exporter/releases/download/v{{ proxysql_exporter_version }}/proxysql_exporter_linux_amd64.tar.gz"
     dest: /tmp/proxysql_exporter.tar.gz
+    checksum: "{{ proxysql_exporter_checksum }}"
     mode: "0644"
 
 - name: Create temp extraction directory

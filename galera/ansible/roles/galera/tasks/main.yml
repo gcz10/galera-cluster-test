@@ -57,9 +57,7 @@
       run_once: true
 
     - name: Bootstrap pierwszego wezla
-      command: galera_new_cluster
-      args:
-        creates: /var/lib/mysql/galera.cache
+      ansible.builtin.command: galera_new_cluster
       delegate_to: "{{ groups['galera'] | first }}"
       run_once: true
 
