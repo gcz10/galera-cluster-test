@@ -55,17 +55,18 @@ frontend prometheus
     http-request use-service prometheus-exporter if { path /metrics }
     no log
 
+{% for cluster in galera_clusters %}
 # =============================================================================
-# Galera Write Pool (Single-Master Pattern)
-# Port: {{ haproxy_write_port }}
+# Galera {{ cluster.name | upper }} Write Pool (Single-Master Pattern)
+# Port: {{ cluster.haproxy_write_port }}
 # =============================================================================
-listen galera_write
-    bind *:{{ haproxy_write_port }}
+listen galera_{{ cluster.name }}_write
+    bind *:{{ cluster.haproxy_write_port }}
     mode tcp
     option mysql-check user {{ haproxy_check_user }}
     balance first
     default-server inter {{ haproxy_check_interval }} fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} on-marked-down shutdown-sessions maxconn {{ haproxy_server_maxconn }}
-{% for host in groups['galera'] %}
+{% for host in groups[cluster.galera_group] %}
 {% if loop.first %}
     server {{ host }} {{ hostvars[host].ansible_host }}:{{ galera_mysql_port | default(3306) }} check weight 1
 {% else %}
@@ -74,15 +75,17 @@ listen galera_write
 {% endfor %}
 
 # =============================================================================
-# Galera Read Pool (Round-Robin)
-# Port: {{ haproxy_read_port }}
+# Galera {{ cluster.name | upper }} Read Pool (Round-Robin)
+# Port: {{ cluster.haproxy_read_port }}
 # =============================================================================
-listen galera_read
-    bind *:{{ haproxy_read_port }}
+listen galera_{{ cluster.name }}_read
+    bind *:{{ cluster.haproxy_read_port }}
     mode tcp
     option mysql-check user {{ haproxy_check_user }}
     balance roundrobin
     default-server inter {{ haproxy_check_interval }} fall {{ haproxy_check_fall }} rise {{ haproxy_check_rise }} maxconn {{ haproxy_server_maxconn }}
-{% for host in groups['galera'] %}
+{% for host in groups[cluster.galera_group] %}
     server {{ host }} {{ hostvars[host].ansible_host }}:{{ galera_mysql_port | default(3306) }} check weight 1
+{% endfor %}
+
 {% endfor %}

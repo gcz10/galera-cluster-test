@@ -1,0 +1,12 @@
+---
+# =============================================================================
+# Konfiguracja Load Balancera
+# =============================================================================
+# lb-1 obsluguje OBA klastry jednoczesnie.
+# galera_clusters jest zdefiniowane w all.yml (uzywane tez przez monitoring).
+#
+# Wspolne hasla dla LB — potrzebne przez ProxySQL i HAProxy:
+haproxy_check_user: "haproxy_check"
+proxysql_monitor_user: "proxysql_monitor"
+proxysql_monitor_password: "ChangeMe!ProxySQL2024"
+proxysql_admin_password: "ChangeMe!ProxySQLAdmin2024"

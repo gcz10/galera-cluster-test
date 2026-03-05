@@ -59,7 +59,7 @@
     weekday: "{{ backup_full_schedule.split()[4] }}"
     job: "/usr/local/bin/galera-backup-full.sh >> /var/log/galera-backup.log 2>&1"
     user: root
-  when: inventory_hostname == groups['galera'] | last  # Backup tylko na ostatnim wezle
+  when: inventory_hostname == groups[galera_group] | last  # Backup tylko na ostatnim wezle
 
 - name: Konfiguruj cron dla inkrementalnego backupu
   cron:
@@ -71,7 +71,7 @@
     weekday: "{{ backup_incr_schedule.split()[4] }}"
     job: "/usr/local/bin/galera-backup-incremental.sh >> /var/log/galera-backup.log 2>&1"
     user: root
-  when: inventory_hostname == groups['galera'] | last
+  when: inventory_hostname == groups[galera_group] | last
 
 - name: Konfiguruj cron dla czyszczenia backupow
   cron:
@@ -80,7 +80,7 @@
     hour: "3"
     job: "/usr/local/bin/galera-backup-cleanup.sh >> /var/log/galera-backup.log 2>&1"
     user: root
-  when: inventory_hostname == groups['galera'] | last
+  when: inventory_hostname == groups[galera_group] | last
 
 - name: Utworz plik logow dla backupu
   ansible.builtin.file:

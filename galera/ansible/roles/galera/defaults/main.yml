@@ -3,6 +3,9 @@
 # Domyslne zmienne dla roli galera
 # =============================================================================
 
+# Grupa inventory dla tego klastra (pozwala na multi-cluster)
+galera_group: galera
+
 # Nazwa klastra
 galera_cluster_name: "galera_cluster"
 

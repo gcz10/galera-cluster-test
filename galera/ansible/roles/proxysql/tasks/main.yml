@@ -116,90 +116,11 @@
       value: "{{ proxysql_monitor_ping_timeout }}"
   no_log: true
 
-- name: Konfiguruj Galera hostgroups
-  community.proxysql.proxysql_galera_hostgroups:
-    login_user: "{{ proxysql_admin_user }}"
-    login_password: "{{ proxysql_admin_password }}"
-    login_host: 127.0.0.1
-    login_port: "{{ proxysql_admin_port }}"
-    writer_hostgroup: "{{ proxysql_writer_hostgroup }}"
-    backup_writer_hostgroup: "{{ proxysql_backup_writer_hostgroup }}"
-    reader_hostgroup: "{{ proxysql_reader_hostgroup }}"
-    offline_hostgroup: "{{ proxysql_offline_hostgroup }}"
-    max_writers: "{{ proxysql_max_writers }}"
-    writer_is_also_reader: "{{ proxysql_writer_is_also_reader }}"
-    max_transactions_behind: "{{ proxysql_max_transactions_behind }}"
-    active: 1
-    state: present
-    load_to_runtime: true
-    save_to_disk: true
-  no_log: true
-
-- name: Dodaj serwery Galera
-  community.proxysql.proxysql_backend_servers:
-    login_user: "{{ proxysql_admin_user }}"
-    login_password: "{{ proxysql_admin_password }}"
-    login_host: 127.0.0.1
-    login_port: "{{ proxysql_admin_port }}"
-    hostgroup_id: "{{ proxysql_writer_hostgroup }}"
-    hostname: "{{ hostvars[item].ansible_host }}"
-    port: "{{ galera_mysql_port | default(3306) }}"
-    weight: 1000
-    max_connections: "{{ proxysql_max_connections }}"
-    state: present
-    load_to_runtime: true
-    save_to_disk: true
-  loop: "{{ groups['galera'] }}"
-  no_log: true
-
-- name: Dodaj uzytkownikow aplikacji
-  community.proxysql.proxysql_mysql_users:
-    login_user: "{{ proxysql_admin_user }}"
-    login_password: "{{ proxysql_admin_password }}"
-    login_host: 127.0.0.1
-    login_port: "{{ proxysql_admin_port }}"
-    username: "{{ item.name }}"
-    password: "{{ item.password }}"
-    default_hostgroup: "{{ proxysql_writer_hostgroup }}"
-    transaction_persistent: true
-    active: true
-    state: present
-    load_to_runtime: true
-    save_to_disk: true
-  loop: "{{ app_users | default([]) }}"
-  no_log: true
-
-- name: Konfiguruj query rule - SELECT FOR UPDATE do writera
-  community.proxysql.proxysql_query_rules:
-    login_user: "{{ proxysql_admin_user }}"
-    login_password: "{{ proxysql_admin_password }}"
-    login_host: 127.0.0.1
-    login_port: "{{ proxysql_admin_port }}"
-    rule_id: 1
-    active: true
-    match_pattern: "^SELECT .* FOR UPDATE"
-    destination_hostgroup: "{{ proxysql_writer_hostgroup }}"
-    apply: true
-    state: present
-    load_to_runtime: true
-    save_to_disk: true
-  no_log: true
-
-- name: Konfiguruj query rule - SELECT do readera
-  community.proxysql.proxysql_query_rules:
-    login_user: "{{ proxysql_admin_user }}"
-    login_password: "{{ proxysql_admin_password }}"
-    login_host: 127.0.0.1
-    login_port: "{{ proxysql_admin_port }}"
-    rule_id: 2
-    active: true
-    match_pattern: "^SELECT"
-    destination_hostgroup: "{{ proxysql_reader_hostgroup }}"
-    apply: true
-    state: present
-    load_to_runtime: true
-    save_to_disk: true
-  no_log: true
+- name: Konfiguruj ProxySQL per cluster
+  include_tasks: proxysql-cluster.yml
+  loop: "{{ galera_clusters }}"
+  loop_control:
+    loop_var: cluster
 
 # -----------------------------------------------------------------------------
 # Prometheus exporter for ProxySQL

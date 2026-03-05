@@ -31,8 +31,8 @@
     source: "{{ hostvars[item].ansible_host }}/32"
     state: enabled
     permanent: yes
-  loop: "{{ groups['galera'] }}"
-  when: "'galera' in group_names"
+  loop: "{{ groups[galera_group] }}"
+  when: "galera_group in group_names"
   notify: reload firewalld
 
 # -----------------------------------------------------------------------------
@@ -45,7 +45,7 @@
     zone: public
     state: enabled
     permanent: yes
-  when: "'galera' in group_names or 'haproxy' in group_names or 'proxysql' in group_names"
+  when: "galera_group in group_names or 'loadbalancer' in group_names"
   notify: reload firewalld
 
 # -----------------------------------------------------------------------------
@@ -58,7 +58,7 @@
     zone: galera-cluster
     state: enabled
     permanent: yes
-  when: "'galera' in group_names"
+  when: "galera_group in group_names"
   notify: reload firewalld
 
 - name: Otworz port Galera replication (4567/udp) w strefie galera-cluster
@@ -67,7 +67,7 @@
     zone: galera-cluster
     state: enabled
     permanent: yes
-  when: "'galera' in group_names"
+  when: "galera_group in group_names"
   notify: reload firewalld
 
 - name: Otworz port IST (4568) w strefie galera-cluster
@@ -76,7 +76,7 @@
     zone: galera-cluster
     state: enabled
     permanent: yes
-  when: "'galera' in group_names"
+  when: "galera_group in group_names"
   notify: reload firewalld
 
 - name: Otworz port SST (4444) w strefie galera-cluster
@@ -85,7 +85,7 @@
     zone: galera-cluster
     state: enabled
     permanent: yes
-  when: "'galera' in group_names"
+  when: "galera_group in group_names"
   notify: reload firewalld
 
 # -----------------------------------------------------------------------------
@@ -98,7 +98,7 @@
     zone: public
     state: enabled
     permanent: yes
-  when: "'galera' in group_names"
+  when: "galera_group in group_names"
   notify: reload firewalld
 
 # -----------------------------------------------------------------------------
@@ -111,7 +111,7 @@
     zone: public
     state: enabled
     permanent: yes
-  when: "'galera' in group_names"
+  when: "galera_group in group_names"
   notify: reload firewalld
 
 # -----------------------------------------------------------------------------

@@ -45,15 +45,16 @@
 
 - name: Open firewall ports for HAProxy
   ansible.posix.firewalld:
-    port: "{{ item }}"
+    port: "{{ item }}/tcp"
     permanent: true
     state: enabled
     immediate: true
-  loop:
-    - "{{ haproxy_write_port }}/tcp"
-    - "{{ haproxy_read_port }}/tcp"
-    - "{{ haproxy_stats_port }}/tcp"
-    - "{{ haproxy_prometheus_port }}/tcp"
+  loop: >-
+    {{
+      galera_clusters | map(attribute='haproxy_write_port') | list +
+      galera_clusters | map(attribute='haproxy_read_port') | list +
+      [haproxy_stats_port, haproxy_prometheus_port]
+    }}
 
 - name: Wlacz i uruchom HAProxy
   ansible.builtin.systemd:

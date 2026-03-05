@@ -2,11 +2,15 @@ global:
   scrape_interval: {{ prometheus_scrape_interval }}
 
 scrape_configs:
-  - job_name: 'galera'
+{% for cluster in galera_clusters | default([{'name': 'galera', 'galera_group': 'galera'}]) %}
+  - job_name: 'galera_{{ cluster.name }}'
     static_configs:
       - targets:
-{% for host in groups['galera'] %}
+{% for host in groups[cluster.galera_group] %}
           - '{{ hostvars[host].ansible_host }}:{{ mysqld_exporter_port }}'
+{% endfor %}
+        labels:
+          cluster: '{{ cluster.name }}'
 {% endfor %}
 
 {% if groups['loadbalancer'] is defined and groups['loadbalancer'] | length > 0 %}

@@ -1,0 +1,37 @@
+---
+# Query rules per user — filtr username zapewnia routing do wlasciwego klastra
+# Zmienne: cluster (z proxysql-cluster.yml), app_user (z loop), user_idx (index)
+
+- name: "{{ cluster.name }}/{{ app_user.name }} - SELECT FOR UPDATE do writera"
+  community.proxysql.proxysql_query_rules:
+    login_user: "{{ proxysql_admin_user }}"
+    login_password: "{{ proxysql_admin_password }}"
+    login_host: 127.0.0.1
+    login_port: "{{ proxysql_admin_port }}"
+    rule_id: "{{ cluster.proxysql_writer_hostgroup * 100 + user_idx * 2 }}"
+    username: "{{ app_user.name }}"
+    active: true
+    match_pattern: "^SELECT .* FOR UPDATE"
+    destination_hostgroup: "{{ cluster.proxysql_writer_hostgroup }}"
+    apply: true
+    state: present
+    load_to_runtime: true
+    save_to_disk: true
+  no_log: true
+
+- name: "{{ cluster.name }}/{{ app_user.name }} - SELECT do readera"
+  community.proxysql.proxysql_query_rules:
+    login_user: "{{ proxysql_admin_user }}"
+    login_password: "{{ proxysql_admin_password }}"
+    login_host: 127.0.0.1
+    login_port: "{{ proxysql_admin_port }}"
+    rule_id: "{{ cluster.proxysql_writer_hostgroup * 100 + user_idx * 2 + 1 }}"
+    username: "{{ app_user.name }}"
+    active: true
+    match_pattern: "^SELECT"
+    destination_hostgroup: "{{ cluster.proxysql_reader_hostgroup }}"
+    apply: true
+    state: present
+    load_to_runtime: true
+    save_to_disk: true
+  no_log: true

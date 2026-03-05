@@ -1,0 +1,31 @@
+---
+# =============================================================================
+# Konfiguracja klastra DEV (galera-dev-1/2/3, .61-.63)
+# =============================================================================
+
+galera_group: galera_dev
+galera_cluster_name: "galera_dev"
+
+# =============================================================================
+# Uzytkownicy bazy danych
+# =============================================================================
+# WAZNE: W produkcji uzyj ansible-vault do szyfrowania hasel!
+
+galera_root_password: "ChangeMe!GaleraDev2024"
+galera_backup_user: "backup_user"
+galera_backup_password: "ChangeMe!BackupDev2024"
+galera_monitor_user: "monitor"
+galera_monitor_password: "ChangeMe!MonitorDev2024"
+
+haproxy_check_user: "haproxy_check"
+haproxy_check_password: "ChangeMe!HaProxyDev2024"
+
+proxysql_monitor_user: "proxysql_monitor"
+proxysql_monitor_password: "ChangeMe!ProxySQL2024"
+proxysql_admin_password: "ChangeMe!ProxySQLAdmin2024"
+
+# Uzytkownicy aplikacji
+app_users:
+  - name: "sbtest_dev"
+    password: "SbTestDev2024"
+    priv: "*.*:ALL PRIVILEGES"

@@ -1,0 +1,74 @@
+---
+# =============================================================================
+# Wspolna konfiguracja dla wszystkich hostow
+# =============================================================================
+
+# Wersja MariaDB LTS
+mariadb_version: "11.4"
+
+# =============================================================================
+# Konfiguracja sieci
+# =============================================================================
+
+# Porty Galera
+galera_mysql_port: 3306
+galera_cluster_port: 4567
+galera_ist_port: 4568
+galera_sst_port: 4444
+
+# =============================================================================
+# Konfiguracja wydajnosci
+# =============================================================================
+
+innodb_buffer_pool_ratio: 0.7
+galera_gcache_size: "2G"
+galera_slave_threads: 8
+mysql_max_connections: 500
+
+# =============================================================================
+# SSL/TLS (opcjonalnie)
+# =============================================================================
+
+galera_ssl_enabled: false
+
+# =============================================================================
+# Definicja klastrow (uzywane przez HAProxy, ProxySQL, Prometheus)
+# =============================================================================
+
+galera_clusters:
+  - name: prod
+    galera_group: galera_prod
+    haproxy_write_port: 3306
+    haproxy_read_port: 3307
+    proxysql_writer_hostgroup: 10
+    proxysql_backup_writer_hostgroup: 11
+    proxysql_reader_hostgroup: 12
+    proxysql_offline_hostgroup: 13
+  - name: dev
+    galera_group: galera_dev
+    haproxy_write_port: 3308
+    haproxy_read_port: 3309
+    proxysql_writer_hostgroup: 20
+    proxysql_backup_writer_hostgroup: 21
+    proxysql_reader_hostgroup: 22
+    proxysql_offline_hostgroup: 23
+
+# =============================================================================
+# Backup
+# =============================================================================
+
+backup_dir: "/var/backups/mariadb"
+backup_retention_days: 30
+backup_full_schedule: "0 2 * * 0"
+backup_incr_schedule: "0 */4 * * 1-6"
+
+# =============================================================================
+# Timezone & NTP
+# =============================================================================
+
+timezone: "Europe/Warsaw"
+
+ntp_servers:
+  - "0.pl.pool.ntp.org"
+  - "1.pl.pool.ntp.org"
+  - "2.pl.pool.ntp.org"

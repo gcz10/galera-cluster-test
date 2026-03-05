@@ -1,0 +1,3 @@
+---
+# Grupa inventory dla klastra Galera (pozwala na multi-cluster)
+galera_group: galera

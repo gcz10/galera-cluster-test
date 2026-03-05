@@ -1,70 +1,128 @@
 ---
 # =============================================================================
-# MariaDB Galera Cluster - Main Playbook
+# MariaDB Galera Cluster - Multi-Cluster Playbook
 # =============================================================================
 # Usage:
-#   ansible-playbook site.yml                    # Full deploy
-#   ansible-playbook site.yml --tags galera      # Only Galera config
-#   ansible-playbook site.yml --tags bootstrap   # Only bootstrap
+#   ansible-playbook site.yml                    # Full deploy (all clusters)
+#   ansible-playbook site.yml --tags prod        # Only prod cluster
+#   ansible-playbook site.yml --tags dev         # Only dev cluster
+#   ansible-playbook site.yml --tags loadbalancer # Reconfigure LB (both clusters)
+#   ansible-playbook site.yml --tags monitoring  # Reconfigure monitoring
 # =============================================================================
 
-# Phase 1: Base system configuration on all nodes
-- name: Configure base system
-  hosts: galera
-  tags: [common]
+# =============================================================================
+# Phase 1-6: Prod Galera cluster (galera-1/2/3, .51-.53)
+# =============================================================================
+
+- name: "Prod: Base system"
+  hosts: galera_prod
+  tags: [common, prod]
   roles:
     - common
 
-# Phase 2: Firewall configuration
-- name: Configure firewall
-  hosts: galera
-  tags: [firewall]
+- name: "Prod: Firewall"
+  hosts: galera_prod
+  tags: [firewall, prod]
   roles:
     - firewall
 
-# Phase 3: Install MariaDB (without starting in Galera mode)
-- name: Install and configure MariaDB
-  hosts: galera
-  tags: [mariadb]
+- name: "Prod: MariaDB"
+  hosts: galera_prod
+  tags: [mariadb, prod]
   roles:
     - mariadb
 
-# Phase 4: Configure Galera and bootstrap cluster
-- name: Configure and bootstrap Galera cluster
-  hosts: galera
-  tags: [galera, bootstrap]
+- name: "Prod: Galera cluster"
+  hosts: galera_prod
+  tags: [galera, bootstrap, prod]
   roles:
     - galera
 
-# Phase 5: Prometheus mysqld_exporter
-- name: Deploy Prometheus mysqld_exporter
-  hosts: galera
-  tags: [monitoring, exporter]
+- name: "Prod: mysqld_exporter"
+  hosts: galera_prod
+  tags: [exporter, prod]
   roles:
     - prometheus-exporter
 
-# Phase 6: HAProxy health check (xinetd) on Galera nodes
-- name: Deploy HAProxy health check on Galera nodes
-  hosts: galera
-  tags: [loadbalancer, haproxy, haproxy-check]
+- name: "Prod: HAProxy health check"
+  hosts: galera_prod
+  tags: [haproxy-check, prod]
   roles:
     - haproxy-check
 
-# Phase 7: Load Balancers (HAProxy + ProxySQL side by side)
-- name: Deploy HAProxy load balancer
+- name: "Prod: Backup"
+  hosts: galera_prod
+  tags: [backup, prod]
+  roles:
+    - backup
+
+# =============================================================================
+# Phase 7-12: Dev Galera cluster (galera-dev-1/2/3, .61-.63)
+# =============================================================================
+
+- name: "Dev: Base system"
+  hosts: galera_dev
+  tags: [common, dev]
+  roles:
+    - common
+
+- name: "Dev: Firewall"
+  hosts: galera_dev
+  tags: [firewall, dev]
+  roles:
+    - firewall
+
+- name: "Dev: MariaDB"
+  hosts: galera_dev
+  tags: [mariadb, dev]
+  roles:
+    - mariadb
+
+- name: "Dev: Galera cluster"
+  hosts: galera_dev
+  tags: [galera, bootstrap, dev]
+  roles:
+    - galera
+
+- name: "Dev: mysqld_exporter"
+  hosts: galera_dev
+  tags: [exporter, dev]
+  roles:
+    - prometheus-exporter
+
+- name: "Dev: HAProxy health check"
+  hosts: galera_dev
+  tags: [haproxy-check, dev]
+  roles:
+    - haproxy-check
+
+- name: "Dev: Backup"
+  hosts: galera_dev
+  tags: [backup, dev]
+  roles:
+    - backup
+
+# =============================================================================
+# Phase 13: Shared Load Balancer (lb-1, .55)
+# =============================================================================
+
+- name: "Shared: HAProxy"
   hosts: loadbalancer
   tags: [loadbalancer, haproxy]
   roles:
     - haproxy
 
-- name: Deploy ProxySQL load balancer
+- name: "Shared: ProxySQL"
   hosts: loadbalancer
   tags: [loadbalancer, proxysql]
   roles:
     - proxysql
 
-# Phase 8: Prometheus + Grafana monitoring server
-- name: Deploy Prometheus + Grafana monitoring
+# =============================================================================
+# Phase 14: Shared Monitoring (grafana-1, .54)
+# =============================================================================
+
+- name: "Shared: Prometheus + Grafana"
   hosts: monitoring
   tags: [monitoring, grafana]
   roles:

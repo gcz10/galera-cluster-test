@@ -11,7 +11,7 @@
 
 - name: Wygeneruj liste adresow wezlow klastra
   set_fact:
-    galera_cluster_nodes: "{{ groups['galera'] | map('extract', hostvars, 'ansible_host') | join(',') }}"
+    galera_cluster_nodes: "{{ groups[galera_group] | map('extract', hostvars, 'ansible_host') | join(',') }}"
 
 - name: Utworz konfiguracje Galera
   template:
@@ -38,7 +38,7 @@
   failed_when: false
   no_log: true
   run_once: true
-  delegate_to: "{{ groups['galera'] | first }}"
+  delegate_to: "{{ groups[galera_group] | first }}"
 
 - name: Debug - wyswietl rozmiar klastra
   debug:
@@ -53,21 +53,21 @@
         name: mariadb
         state: stopped
       delegate_to: "{{ item }}"
-      loop: "{{ groups['galera'] }}"
+      loop: "{{ groups[galera_group] }}"
       run_once: true
 
     - name: Bootstrap pierwszego wezla
       ansible.builtin.command: galera_new_cluster
-      delegate_to: "{{ groups['galera'] | first }}"
+      delegate_to: "{{ groups[galera_group] | first }}"
       run_once: true
 
     - name: Poczekaj na uruchomienie pierwszego wezla
       wait_for:
         port: "{{ galera_mysql_port }}"
-        host: "{{ hostvars[groups['galera'] | first].ansible_host }}"
+        host: "{{ hostvars[groups[galera_group] | first].ansible_host }}"
         delay: 10
         timeout: 120
-      delegate_to: "{{ groups['galera'] | first }}"
+      delegate_to: "{{ groups[galera_group] | first }}"
       run_once: true
 
     - name: Sprawdz status pierwszego wezla
@@ -77,13 +77,13 @@
       until: first_node_status.stdout == "Synced"
       retries: 30
       delay: 10
-      delegate_to: "{{ groups['galera'] | first }}"
+      delegate_to: "{{ groups[galera_group] | first }}"
       run_once: true
       no_log: true
 
   when:
     - cluster_size_check.stdout | default('0') | int == 0
-    - galera_bootstrap | default(false) or (inventory_hostname == groups['galera'] | first)
+    - galera_bootstrap | default(false) or (inventory_hostname == groups[galera_group] | first)
 
 # -----------------------------------------------------------------------------
 # Dolaczanie pozostalych wezlow (sekwencyjnie)
@@ -95,7 +95,7 @@
     state: started
     enabled: yes
   when:
-    - inventory_hostname != groups['galera'] | first
+    - inventory_hostname != groups[galera_group] | first
     - cluster_size_check.stdout | default('0') | int == 0
   throttle: 1  # Jeden wezel na raz
 
@@ -108,7 +108,7 @@
   delay: 10
   changed_when: false
   no_log: true
-  when: inventory_hostname != groups['galera'] | first
+  when: inventory_hostname != groups[galera_group] | first
 
 # -----------------------------------------------------------------------------
 # Weryfikacja klastra
@@ -120,14 +120,14 @@
   register: final_cluster_size
   changed_when: false
   run_once: true
-  delegate_to: "{{ groups['galera'] | first }}"
+  delegate_to: "{{ groups[galera_group] | first }}"
   no_log: true
 
 - name: Weryfikacja - klaster ma wszystkie wezly
   assert:
     that:
-      - final_cluster_size.stdout | int == groups['galera'] | length
-    fail_msg: "Klaster ma {{ final_cluster_size.stdout }} wezlow, oczekiwano {{ groups['galera'] | length }}"
+      - final_cluster_size.stdout | int == groups[galera_group] | length
+    fail_msg: "Klaster ma {{ final_cluster_size.stdout }} wezlow, oczekiwano {{ groups[galera_group] | length }}"
     success_msg: "Klaster Galera skonfigurowany poprawnie z {{ final_cluster_size.stdout }} wezlami"
   run_once: true
 

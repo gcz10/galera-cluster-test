@@ -1,0 +1,65 @@
+---
+# =============================================================================
+# ProxySQL — konfiguracja per-cluster (wywoływane z include_tasks)
+# Zmienna 'cluster' pochodzi z loop_control w main.yml
+# =============================================================================
+
+- name: "{{ cluster.name }} - Konfiguruj Galera hostgroups"
+  community.proxysql.proxysql_galera_hostgroups:
+    login_user: "{{ proxysql_admin_user }}"
+    login_password: "{{ proxysql_admin_password }}"
+    login_host: 127.0.0.1
+    login_port: "{{ proxysql_admin_port }}"
+    writer_hostgroup: "{{ cluster.proxysql_writer_hostgroup }}"
+    backup_writer_hostgroup: "{{ cluster.proxysql_backup_writer_hostgroup }}"
+    reader_hostgroup: "{{ cluster.proxysql_reader_hostgroup }}"
+    offline_hostgroup: "{{ cluster.proxysql_offline_hostgroup }}"
+    max_writers: "{{ proxysql_max_writers }}"
+    writer_is_also_reader: "{{ proxysql_writer_is_also_reader }}"
+    max_transactions_behind: "{{ proxysql_max_transactions_behind }}"
+    active: 1
+    state: present
+    load_to_runtime: true
+    save_to_disk: true
+  no_log: true
+
+- name: "{{ cluster.name }} - Dodaj serwery Galera"
+  community.proxysql.proxysql_backend_servers:
+    login_user: "{{ proxysql_admin_user }}"
+    login_password: "{{ proxysql_admin_password }}"
+    login_host: 127.0.0.1
+    login_port: "{{ proxysql_admin_port }}"
+    hostgroup_id: "{{ cluster.proxysql_writer_hostgroup }}"
+    hostname: "{{ hostvars[item].ansible_host }}"
+    port: "{{ galera_mysql_port | default(3306) }}"
+    weight: 1000
+    max_connections: "{{ proxysql_max_connections }}"
+    state: present
+    load_to_runtime: true
+    save_to_disk: true
+  loop: "{{ groups[cluster.galera_group] }}"
+  no_log: true
+
+- name: "{{ cluster.name }} - Dodaj uzytkownikow aplikacji"
+  community.proxysql.proxysql_mysql_users:
+    login_user: "{{ proxysql_admin_user }}"
+    login_password: "{{ proxysql_admin_password }}"
+    login_host: 127.0.0.1
+    login_port: "{{ proxysql_admin_port }}"
+    username: "{{ item.name }}"
+    password: "{{ item.password }}"
+    default_hostgroup: "{{ cluster.proxysql_writer_hostgroup }}"
+    transaction_persistent: true
+    active: true
+    state: present
+    load_to_runtime: true
+    save_to_disk: true
+  loop: "{{ hostvars[groups[cluster.galera_group] | first].app_users | default([]) }}"
+  no_log: true
+
+- name: "{{ cluster.name }} - Query rules per user"
+  include_tasks: proxysql-query-rules.yml
+  loop: "{{ hostvars[groups[cluster.galera_group] | first].app_users | default([]) }}"
+  loop_control:
+    loop_var: app_user
+    index_var: user_idx
