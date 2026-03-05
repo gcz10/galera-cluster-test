@@ -150,7 +150,7 @@
     state: started
     enabled: true
 
-- name: Open firewall ports for Prometheus and Grafana
+- name: Open firewall ports for monitoring services
   ansible.posix.firewalld:
     port: "{{ item }}"
     permanent: true
@@ -159,6 +159,7 @@
   loop:
     - "{{ prometheus_port }}/tcp"
     - "{{ grafana_port }}/tcp"
+    - "{{ pmm_port }}/tcp"
 
 - name: Enable and start Prometheus
   ansible.builtin.systemd:
@@ -172,6 +173,60 @@
     name: grafana-server
     state: started
     enabled: true
+
+# --- PMM Server (Docker) ---
+- name: Add Docker CE repo
+  ansible.builtin.shell: dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+  args:
+    creates: /etc/yum.repos.d/docker-ce.repo
+  when: pmm_enabled | default(true)
+
+- name: Install Docker
+  ansible.builtin.dnf:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present
+  when: pmm_enabled | default(true)
+
+- name: Enable and start Docker
+  ansible.builtin.systemd:
+    name: docker
+    state: started
+    enabled: true
+  when: pmm_enabled | default(true)
+
+- name: Create PMM data volume
+  ansible.builtin.command: docker volume create {{ pmm_data_volume }}
+  register: pmm_volume_create
+  changed_when: "'already exists' not in pmm_volume_create.stderr"
+  failed_when: false
+  when: pmm_enabled | default(true)
+
+- name: Check if PMM container exists
+  ansible.builtin.command: docker inspect pmm-server
+  register: pmm_container_check
+  changed_when: false
+  failed_when: false
+  when: pmm_enabled | default(true)
+
+- name: Start PMM Server container
+  ansible.builtin.command: >
+    docker run -d
+    --name pmm-server
+    --restart always
+    -p {{ pmm_port }}:443
+    -v {{ pmm_data_volume }}:/srv
+    {{ pmm_image }}
+  when: pmm_enabled | default(true) and pmm_container_check.rc != 0
+
+- name: Ensure PMM container is running
+  ansible.builtin.command: docker start pmm-server
+  register: pmm_start
+  changed_when: "'already started' not in pmm_start.stderr"
+  failed_when: false
+  when: pmm_enabled | default(true) and pmm_container_check.rc == 0
 
 # --- Cleanup ---
 - name: Clean up Prometheus temp files
