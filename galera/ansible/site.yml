@@ -8,6 +8,7 @@
 #   ansible-playbook site.yml --tags dev         # Only dev cluster
 #   ansible-playbook site.yml --tags loadbalancer # Reconfigure LB (both clusters)
 #   ansible-playbook site.yml --tags monitoring  # Reconfigure monitoring
+#   ansible-playbook site.yml --tags backup      # Reconfigure backup
 # =============================================================================
 
 # =============================================================================
@@ -43,12 +44,6 @@
   tags: [exporter, prod]
   roles:
     - prometheus-exporter
-
-- name: "Prod: HAProxy health check"
-  hosts: galera_prod
-  tags: [haproxy-check, prod]
-  roles:
-    - haproxy-check
 
 - name: "Prod: Backup"
   hosts: galera_prod
@@ -89,12 +84,6 @@
   tags: [exporter, dev]
   roles:
     - prometheus-exporter
-
-- name: "Dev: HAProxy health check"
-  hosts: galera_dev
-  tags: [haproxy-check, dev]
-  roles:
-    - haproxy-check
 
 - name: "Dev: Backup"
   hosts: galera_dev

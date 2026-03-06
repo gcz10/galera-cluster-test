@@ -1,5 +1,14 @@
 ---
-# Deploy xinetd health check on Galera nodes for HAProxy
+# Deploy legacy xinetd-based health check on Galera nodes for HAProxy.
+
+- name: Fail on Rocky Linux 9 and newer
+  ansible.builtin.fail:
+    msg: >-
+      The haproxy-check role requires xinetd, which is not available on Rocky Linux 9+.
+      Leave galera_enable_haproxy_check=false and use HAProxy's native mysql-check instead.
+  when:
+    - ansible_distribution == "Rocky"
+    - ansible_distribution_major_version is version('9', '>=')
 
 - name: Zainstaluj xinetd
   ansible.builtin.dnf:

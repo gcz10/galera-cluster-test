@@ -1,0 +1,2 @@
+# Copy to terraform.tfvars and replace with your Proxmox API token.
+proxmox_api_token = "tf-rocky@pve!provider=REPLACE_ME"

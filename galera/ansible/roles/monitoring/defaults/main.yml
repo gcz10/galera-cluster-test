@@ -8,6 +8,6 @@ prometheus_scrape_interval: 15s
 
 # PMM Server
 pmm_enabled: true
-pmm_image: "percona/pmm-server:2"
+pmm_image: "percona/pmm-server:2.44.1"
 pmm_port: 8443
 pmm_data_volume: "pmm-data"

@@ -16,6 +16,9 @@ galera_cluster_port: 4567
 galera_ist_port: 4568
 galera_sst_port: 4444
 
+# Legacy xinetd-based health check is disabled by default on Rocky 9.
+galera_enable_haproxy_check: false
+
 # =============================================================================
 # Konfiguracja wydajnosci
 # =============================================================================
