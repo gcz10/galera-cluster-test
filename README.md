@@ -63,7 +63,6 @@ Infrastruktura IaC (Terraform + Ansible) dla klastrów MariaDB Galera na Proxmox
 │           ├── mariadb/                  # MariaDB 11.4 instalacja
 │           ├── galera/                   # Konfiguracja klastra + bootstrap
 │           ├── haproxy/                  # HAProxy (multi-cluster)
-│           ├── haproxy-check/            # opcjonalny legacy xinetd health check
 │           ├── proxysql/                 # ProxySQL (multi-cluster)
 │           ├── prometheus-exporter/      # mysqld_exporter na nodach
 │           ├── monitoring/               # Prometheus + Grafana + PMM
@@ -113,7 +112,7 @@ terraform init && eval $(ssh-agent) && ssh-add && terraform apply
 cd galera/ansible
 ansible-galaxy collection install -r requirements.yml
 
-# Pelny deploy wszystkiego (bez opcjonalnej roli haproxy-check)
+# Pelny deploy wszystkiego
 ansible-playbook site.yml
 
 # Tylko prod
@@ -130,10 +129,6 @@ ansible-playbook site.yml --tags monitoring
 
 # Tylko backup
 ansible-playbook site.yml --tags backup
-
-# Opcjonalny legacy health check przez xinetd
-# Uzywaj tylko na systemie, gdzie xinetd jest dostepny
-ansible-playbook site.yml --tags haproxy-check -e galera_enable_haproxy_check=true
 ```
 
 ### 3. Szybka walidacja

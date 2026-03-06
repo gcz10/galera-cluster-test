@@ -89,19 +89,6 @@
   notify: reload firewalld
 
 # -----------------------------------------------------------------------------
-# Porty dla health check (xinetd - HAProxy)
-# -----------------------------------------------------------------------------
-
-- name: Otworz port health check (9200) dla HAProxy
-  firewalld:
-    port: 9200/tcp
-    zone: public
-    state: enabled
-    permanent: yes
-  when: "galera_group in group_names"
-  notify: reload firewalld
-
-# -----------------------------------------------------------------------------
 # Porty dla mysqld_exporter (Prometheus)
 # -----------------------------------------------------------------------------
 
