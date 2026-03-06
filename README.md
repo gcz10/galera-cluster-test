@@ -37,7 +37,7 @@ Infrastruktura IaC (Terraform + Ansible) dla klastrów MariaDB Galera na Proxmox
 
 ```
 .
-├── main.tf / rocky9.tf / variables.tf    # Terraform: Rocky 9 template VM
+├── main.tf / rocky9.tf / variables.tf    # Terraform: Rocky 9 template + standalone VM
 │
 ├── galera/                               # Klaster PROD
 │   ├── terraform/                        # 5 VM: 3 galera + lb + monitoring
@@ -63,7 +63,6 @@ Infrastruktura IaC (Terraform + Ansible) dla klastrów MariaDB Galera na Proxmox
 │           ├── mariadb/                  # MariaDB 11.4 instalacja
 │           ├── galera/                   # Konfiguracja klastra + bootstrap
 │           ├── haproxy/                  # HAProxy (multi-cluster)
-│           ├── haproxy-check/            # xinetd health check
 │           ├── proxysql/                 # ProxySQL (multi-cluster)
 │           ├── prometheus-exporter/      # mysqld_exporter na nodach
 │           ├── monitoring/               # Prometheus + Grafana + PMM
@@ -82,7 +81,8 @@ Infrastruktura IaC (Terraform + Ansible) dla klastrów MariaDB Galera na Proxmox
 - Terraform >= 1.5.0
 - Ansible >= 2.15 z kolekcjami:
   ```bash
-  ansible-galaxy collection install community.proxysql community.mysql ansible.posix community.docker
+  cd galera/ansible
+  ansible-galaxy collection install -r requirements.yml
   ```
 - SSH klucz ed25519 (`~/.ssh/id_ed25519`)
 - Proxmox API token (`tf-rocky@pve!provider`)
@@ -90,6 +90,9 @@ Infrastruktura IaC (Terraform + Ansible) dla klastrów MariaDB Galera na Proxmox
 ## Szybki start
 
 ### 1. Terraform: tworzenie VM
+
+Repo root (`main.tf`, `rocky9.tf`) sluzy do zarzadzania szablonem Rocky 9 (VM ID 9001)
+oraz dodatkowa testowa VM. Glowny deploy prod/dev zaczyna sie od katalogow ponizej.
 
 ```bash
 # Prod (5 VM: 3 galera + lb + monitoring)
@@ -107,6 +110,7 @@ terraform init && eval $(ssh-agent) && ssh-add && terraform apply
 
 ```bash
 cd galera/ansible
+ansible-galaxy collection install -r requirements.yml
 
 # Pelny deploy wszystkiego
 ansible-playbook site.yml
@@ -127,28 +131,49 @@ ansible-playbook site.yml --tags monitoring
 ansible-playbook site.yml --tags backup
 ```
 
+### 3. Szybka walidacja
+
+```bash
+# Szybki check z repo root
+make validate
+
+# Terraform validate (po `terraform init` w kazdym root)
+make terraform-validate
+
+# Rownowazne komendy recznie:
+terraform validate
+(cd galera/terraform && terraform validate)
+(cd galera-dev/terraform && terraform validate)
+
+# Ansible syntax
+cd galera/ansible
+ansible-playbook site.yml --syntax-check
+```
+
 ## Laczenie z baza danych
 
 ### Przez HAProxy (aplikacja wybiera port)
 
+Podstaw swoje hasla z `inventory/group_vars/*.yml` albo z Ansible Vault.
+
 ```bash
 # PROD
-mysql -h 192.168.1.55 -P 3306 -u sbtest -p'SbTest2024'         # write
-mysql -h 192.168.1.55 -P 3307 -u sbtest -p'SbTest2024'         # read
+mysql -h 192.168.1.55 -P 3306 -u sbtest -p'<APP_PASSWORD>'         # write
+mysql -h 192.168.1.55 -P 3307 -u sbtest -p'<APP_PASSWORD>'         # read
 
 # DEV
-mysql -h 192.168.1.55 -P 3308 -u sbtest_dev -p'SbTestDev2024'  # write
-mysql -h 192.168.1.55 -P 3309 -u sbtest_dev -p'SbTestDev2024'  # read
+mysql -h 192.168.1.55 -P 3308 -u sbtest_dev -p'<APP_PASSWORD>'  # write
+mysql -h 192.168.1.55 -P 3309 -u sbtest_dev -p'<APP_PASSWORD>'  # read
 ```
 
 ### Przez ProxySQL (automatyczny read/write split)
 
 ```bash
 # PROD — ProxySQL sam rozdziela SELECT na readery, reszta na writera
-mysql -h 192.168.1.55 -P 6033 -u sbtest -p'SbTest2024'
+mysql -h 192.168.1.55 -P 6033 -u sbtest -p'<APP_PASSWORD>'
 
 # DEV — routing po username, ten sam port
-mysql -h 192.168.1.55 -P 6033 -u sbtest_dev -p'SbTestDev2024'
+mysql -h 192.168.1.55 -P 6033 -u sbtest_dev -p'<APP_PASSWORD>'
 ```
 
 ### Bezposrednio na node (diagnostyka)
@@ -174,9 +199,9 @@ W produkcji wybierasz jedno. Oba sa zainstalowane na lb-1 do nauki.
 
 | Usluga | URL |
 |---------|-----|
-| Grafana | http://192.168.1.54:3000 (admin/admin) |
+| Grafana | http://192.168.1.54:3000 (admin/admin, zmien po pierwszym logowaniu) |
 | Prometheus | http://192.168.1.54:9090 |
-| PMM Server | https://192.168.1.54:8443 (admin/admin) |
+| PMM Server | https://192.168.1.54:8443 (admin/admin, zmien po pierwszym logowaniu) |
 | HAProxy Stats | http://192.168.1.55:8404/stats |
 
 Prometheus scrape'uje:
@@ -234,7 +259,7 @@ wsrep_local_state_comment    Synced
 
 ```bash
 # Na lb-1
-sudo mysql -u admin -h 127.0.0.1 -P 6032 -p'ChangeMe!ProxySQLAdmin2024' \
+sudo mysql -u admin -h 127.0.0.1 -P 6032 -p'<PROXYSQL_ADMIN_PASSWORD>' \
   -e "SELECT hostgroup_id, hostname, status FROM runtime_mysql_servers ORDER BY hostgroup_id"
 ```
 
@@ -312,6 +337,16 @@ sudo tail -f /var/lib/proxysql/proxysql.log
 
 - **Hasla**: W produkcji uzyj `ansible-vault` do szyfrowania hasel w group_vars
 - **SSH agent**: Terraform wymaga ssh-agent w tej samej sesji: `eval $(ssh-agent) && ssh-add && terraform apply`
-- **xinetd**: Nie jest dostepny w Rocky 9 — rola haproxy-check nie dziala, ale HAProxy uzywa natywnego `option mysql-check` i nie potrzebuje xinetd
+- **HAProxy health check**: HAProxy uzywa natywnego `option mysql-check` — nie wymaga xinetd ani dodatkowych skryptow
 - **ProxySQL monitor**: Oba klastry musza miec tego samego usera `proxysql_monitor` z tym samym haslem (ProxySQL ma jedno globalne konto monitora)
 - **wsrep_provider_options**: Musi byc single-line — multiline lamie parser Galera
+
+## Linting
+
+Repo zawiera konfiguracje pre-commit z ansible-lint i terraform validate:
+
+```bash
+pip install pre-commit ansible-lint
+pre-commit install
+pre-commit run --all-files
+```

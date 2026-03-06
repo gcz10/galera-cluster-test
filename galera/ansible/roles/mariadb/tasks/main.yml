@@ -89,7 +89,7 @@
   no_log: true
 
 - name: Ustaw haslo root (jesli nie ustawione)
-  mysql_user:
+  community.mysql.mysql_user:
     name: root
     password: "{{ galera_root_password }}"
     host_all: yes
@@ -108,7 +108,7 @@
   no_log: true
 
 - name: Usun anonimowych uzytkownikow
-  mysql_user:
+  community.mysql.mysql_user:
     name: ''
     host_all: yes
     state: absent
@@ -116,14 +116,14 @@
     login_password: "{{ galera_root_password }}"
 
 - name: Usun testowa baze danych
-  mysql_db:
+  community.mysql.mysql_db:
     name: test
     state: absent
     login_user: root
     login_password: "{{ galera_root_password }}"
 
 - name: Utworz uzytkownika backup
-  mysql_user:
+  community.mysql.mysql_user:
     name: "{{ galera_backup_user }}"
     password: "{{ galera_backup_password }}"
     priv: "*.*:RELOAD,LOCK TABLES,REPLICATION CLIENT,CREATE TABLESPACE,PROCESS,SUPER,CREATE,INSERT,SELECT"
@@ -134,7 +134,7 @@
   no_log: true
 
 - name: Utworz uzytkownika monitor
-  mysql_user:
+  community.mysql.mysql_user:
     name: "{{ galera_monitor_user }}"
     password: "{{ galera_monitor_password }}"
     priv: "*.*:PROCESS,REPLICATION CLIENT,SELECT"
@@ -145,7 +145,7 @@
   no_log: true
 
 - name: Utworz uzytkownika haproxy_check (bez hasla - wymagane przez HAProxy mysql-check)
-  mysql_user:
+  community.mysql.mysql_user:
     name: "{{ haproxy_check_user }}"
     password: ""
     priv: "*.*:USAGE"
@@ -156,7 +156,7 @@
   no_log: true
 
 - name: Utworz uzytkownika proxysql_monitor
-  mysql_user:
+  community.mysql.mysql_user:
     name: "{{ proxysql_monitor_user }}"
     password: "{{ proxysql_monitor_password }}"
     priv: "*.*:PROCESS,REPLICATION CLIENT,SELECT"
@@ -167,7 +167,7 @@
   no_log: true
 
 - name: Utworz uzytkownikow aplikacji
-  mysql_user:
+  community.mysql.mysql_user:
     name: "{{ item.name }}"
     password: "{{ item.password }}"
     priv: "{{ item.priv | default('*.*:ALL PRIVILEGES') }}"

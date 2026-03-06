@@ -1,0 +1,50 @@
+---
+- name: Skip PMM client (disabled)
+  ansible.builtin.debug:
+    msg: "PMM client disabled for this cluster (pmm_client_enabled=false)"
+  when: not (pmm_client_enabled | default(false) | bool)
+
+- name: Install and configure PMM client
+  when: pmm_client_enabled | default(false) | bool
+  block:
+    - name: Add Percona repository
+      ansible.builtin.dnf:
+        name: "https://repo.percona.com/yum/percona-release-latest.noarch.rpm"
+        state: present
+        disable_gpg_check: true
+
+    - name: Install PMM client
+      ansible.builtin.dnf:
+        name: "{{ pmm_client_package }}"
+        state: present
+
+    - name: Check if PMM agent is already configured
+      ansible.builtin.command: pmm-admin status
+      register: pmm_status
+      changed_when: false
+      failed_when: false
+
+    - name: Register node with PMM server
+      ansible.builtin.command: >
+        pmm-admin config
+        --server-url=https://{{ pmm_server_user }}:{{ pmm_server_password }}@192.168.1.54:8443/
+        --server-insecure-tls
+      when: pmm_status.rc != 0
+      no_log: true
+
+    - name: Check if MySQL service is already added
+      ansible.builtin.shell: pmm-admin list | grep mysql
+      register: pmm_mysql_check
+      changed_when: false
+      failed_when: false
+
+    - name: Add MySQL service to PMM
+      ansible.builtin.command: >
+        pmm-admin add mysql
+        --username={{ galera_monitor_user }}
+        --password={{ galera_monitor_password }}
+        --socket=/var/lib/mysql/mysql.sock
+        --query-source=perfschema
+        {{ inventory_hostname }}
+      when: pmm_mysql_check.rc != 0
+      no_log: true

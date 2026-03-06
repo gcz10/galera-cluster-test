@@ -1,0 +1,10 @@
+# Proxmox API token (required)
+# Format: user@realm!tokenname=token-uuid
+proxmox_api_token = "tf-rocky@pve!provider=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+
+# Optional overrides (defaults are in variables.tf)
+# proxmox_endpoint    = "https://192.168.1.177:8006/"
+# node_name           = "pve"
+# template_vm_id      = 9001
+# gateway             = "192.168.1.1"
+# ssh_public_key_path = "~/.ssh/id_ed25519.pub"

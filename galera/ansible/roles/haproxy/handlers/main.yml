@@ -8,8 +8,3 @@
   systemd:
     name: haproxy
     state: reloaded
-
-- name: restart xinetd
-  systemd:
-    name: xinetd
-    state: restarted
