@@ -24,6 +24,9 @@ proxysql_monitor_user: "proxysql_monitor"
 proxysql_monitor_password: "ChangeMe!ProxySQL2024"
 proxysql_admin_password: "ChangeMe!ProxySQLAdmin2024"
 
+# PMM Client
+pmm_client_enabled: true
+
 # Uzytkownicy aplikacji
 app_users:
   - name: "sbtest_dev"

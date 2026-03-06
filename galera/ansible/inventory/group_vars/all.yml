@@ -52,6 +52,14 @@ galera_clusters:
     proxysql_backup_writer_hostgroup: 21
     proxysql_reader_hostgroup: 22
     proxysql_offline_hostgroup: 23
+  - name: staging
+    galera_group: galera_staging
+    haproxy_write_port: 3310
+    haproxy_read_port: 3311
+    proxysql_writer_hostgroup: 30
+    proxysql_backup_writer_hostgroup: 31
+    proxysql_reader_hostgroup: 32
+    proxysql_offline_hostgroup: 33
 
 # =============================================================================
 # Backup

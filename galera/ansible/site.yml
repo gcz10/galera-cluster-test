@@ -6,7 +6,8 @@
 #   ansible-playbook site.yml                    # Full deploy (all clusters)
 #   ansible-playbook site.yml --tags prod        # Only prod cluster
 #   ansible-playbook site.yml --tags dev         # Only dev cluster
-#   ansible-playbook site.yml --tags loadbalancer # Reconfigure LB (both clusters)
+#   ansible-playbook site.yml --tags staging     # Only staging cluster
+#   ansible-playbook site.yml --tags loadbalancer # Reconfigure LB (all clusters)
 #   ansible-playbook site.yml --tags monitoring  # Reconfigure monitoring
 #   ansible-playbook site.yml --tags backup      # Reconfigure backup
 # =============================================================================
@@ -51,6 +52,12 @@
   roles:
     - backup
 
+- name: "Prod: PMM client"
+  hosts: galera_prod
+  tags: [pmm, prod]
+  roles:
+    - pmm-client
+
 # =============================================================================
 # Phase 7-12: Dev Galera cluster (galera-dev-1/2/3, .61-.63)
 # =============================================================================
@@ -91,8 +98,60 @@
   roles:
     - backup
 
+- name: "Dev: PMM client"
+  hosts: galera_dev
+  tags: [pmm, dev]
+  roles:
+    - pmm-client
+
 # =============================================================================
-# Phase 13: Shared Load Balancer (lb-1, .55)
+# Phase 13-18: Staging Galera cluster (galera-staging-1/2/3, .71-.73)
+# =============================================================================
+
+- name: "Staging: Base system"
+  hosts: galera_staging
+  tags: [common, staging]
+  roles:
+    - common
+
+- name: "Staging: Firewall"
+  hosts: galera_staging
+  tags: [firewall, staging]
+  roles:
+    - firewall
+
+- name: "Staging: MariaDB"
+  hosts: galera_staging
+  tags: [mariadb, staging]
+  roles:
+    - mariadb
+
+- name: "Staging: Galera cluster"
+  hosts: galera_staging
+  tags: [galera, bootstrap, staging]
+  roles:
+    - galera
+
+- name: "Staging: mysqld_exporter"
+  hosts: galera_staging
+  tags: [exporter, staging]
+  roles:
+    - prometheus-exporter
+
+- name: "Staging: Backup"
+  hosts: galera_staging
+  tags: [backup, staging]
+  roles:
+    - backup
+
+- name: "Staging: PMM client"
+  hosts: galera_staging
+  tags: [pmm, staging]
+  roles:
+    - pmm-client
+
+# =============================================================================
+# Phase 19: Shared Load Balancer (lb-1, .55)
 # =============================================================================
 
 - name: "Shared: HAProxy"

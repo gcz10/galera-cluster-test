@@ -1,34 +1,31 @@
 ---
 # =============================================================================
-# Konfiguracja klastra PROD (galera-1/2/3, .51-.53)
+# Konfiguracja klastra STAGING (galera-staging-1/2/3, .71-.73)
 # =============================================================================
 
-galera_group: galera_prod
-galera_cluster_name: "galera_cluster"
+galera_group: galera_staging
+galera_cluster_name: "galera_staging"
 
 # =============================================================================
 # Uzytkownicy bazy danych
 # =============================================================================
 # WAZNE: W produkcji uzyj ansible-vault do szyfrowania hasel!
 
-galera_root_password: "ChangeMe!Galera2024"
+galera_root_password: "ChangeMe!GaleraStaging2024"
 galera_backup_user: "backup_user"
-galera_backup_password: "ChangeMe!Backup2024"
+galera_backup_password: "ChangeMe!BackupStaging2024"
 galera_monitor_user: "monitor"
-galera_monitor_password: "ChangeMe!Monitor2024"
+galera_monitor_password: "ChangeMe!MonitorStaging2024"
 
 haproxy_check_user: "haproxy_check"
-haproxy_check_password: "ChangeMe!HaProxy2024"
+haproxy_check_password: "ChangeMe!HaProxyStaging2024"
 
 proxysql_monitor_user: "proxysql_monitor"
 proxysql_monitor_password: "ChangeMe!ProxySQL2024"
 proxysql_admin_password: "ChangeMe!ProxySQLAdmin2024"
 
-# PMM Client
-pmm_client_enabled: true
-
 # Uzytkownicy aplikacji
 app_users:
-  - name: "sbtest"
-    password: "SbTest2024"
+  - name: "sbtest_staging"
+    password: "SbTestStaging2024"
     priv: "*.*:ALL PRIVILEGES"

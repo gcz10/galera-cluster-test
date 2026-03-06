@@ -1,0 +1,6 @@
+---
+pmm_client_enabled: false
+pmm_server_url: "https://192.168.1.54:8443"
+pmm_server_user: "admin"
+pmm_server_password: "admin"
+pmm_client_package: "pmm2-client"
